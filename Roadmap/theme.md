@@ -1,23 +1,29 @@
+# Theme configuration
+
+This custom theme will be applied globally via Shadcn components and Tailwind classes.
+
+```css
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --primary: oklch(0.6716 0.1368 48.513);
-    --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.536 0.0398 196.028);
-    --secondary-foreground: oklch(1 0 0);
-    --accent: oklch(0.9491 0 0);
-    --accent-foreground: oklch(0.2101 0.0318 264.6645);
     --background: oklch(1 0 0);
     --foreground: oklch(0.2101 0.0318 264.6645);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.2101 0.0318 264.6645);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.2101 0.0318 264.6645);
+    --primary: oklch(0.6716 0.1368 48.513);
+    --primary-foreground: oklch(1 0 0);
+    --secondary: oklch(0.536 0.0398 196.028);
+    --secondary-foreground: oklch(1 0 0);
     --muted: oklch(0.967 0.0029 264.5419);
     --muted-foreground: oklch(0.551 0.0234 264.3637);
+    --accent: oklch(0.9491 0 0);
+    --accent-foreground: oklch(0.2101 0.0318 264.6645);
     --destructive: oklch(0.6368 0.2078 25.3313);
     --destructive-foreground: oklch(0.9851 0 0);
     --border: oklch(0.9276 0.0058 264.5313);
@@ -55,20 +61,20 @@
   }
 
   .dark {
-    --primary: oklch(0.7214 0.1337 49.9802);
-    --primary-foreground: oklch(0.1797 0.0043 308.1928);
-    --secondary: oklch(0.594 0.0443 196.0233);
-    --secondary-foreground: oklch(0.1797 0.0043 308.1928);
-    --accent: oklch(0.3211 0 0);
-    --accent-foreground: oklch(0.8109 0 0);
     --background: oklch(0.1797 0.0043 308.1928);
     --foreground: oklch(0.8109 0 0);
     --card: oklch(0.1822 0 0);
     --card-foreground: oklch(0.8109 0 0);
     --popover: oklch(0.1797 0.0043 308.1928);
     --popover-foreground: oklch(0.8109 0 0);
+    --primary: oklch(0.7214 0.1337 49.9802);
+    --primary-foreground: oklch(0.1797 0.0043 308.1928);
+    --secondary: oklch(0.594 0.0443 196.0233);
+    --secondary-foreground: oklch(0.1797 0.0043 308.1928);
     --muted: oklch(0.252 0 0);
     --muted-foreground: oklch(0.6268 0 0);
+    --accent: oklch(0.3211 0 0);
+    --accent-foreground: oklch(0.8109 0 0);
     --destructive: oklch(0.594 0.0443 196.0233);
     --destructive-foreground: oklch(0.1797 0.0043 308.1928);
     --border: oklch(0.252 0 0);
@@ -249,3 +255,4 @@
 .focus-ring-color:focus-visible {
   --tw-ring-color: var(--ring);
 }
+```
