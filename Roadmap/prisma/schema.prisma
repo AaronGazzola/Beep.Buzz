@@ -1,10 +1,50 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = []
+  schemas  = ["public"]
 }
 
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["multiSchema"]
+}
+
+model CreatorProfile {
+  id                  String                   @id @default(cuid())
+  userId              String
+  username            String
+  youtubeChannelId    String
+  stripeAccountId     String
+  customStyles        Json
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@schema("public")
+}
+
+model PageComponent {
+  id                  String                   @id @default(cuid())
+  creatorId           String
+  type                ComponentType
+  configuration       Json
+  position            Int
+  isActive            Boolean
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@schema("public")
+}
+
+model Donation {
+  id                  String                   @id @default(cuid())
+  creatorId           String
+  amount              Decimal
+  message             String
+  status              DonationStatus
+  donorName           String
+  stripePaymentId     String
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@schema("public")
 }
