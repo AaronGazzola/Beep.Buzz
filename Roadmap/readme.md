@@ -1,1 +1,0 @@
-[READMEComponent Component]
