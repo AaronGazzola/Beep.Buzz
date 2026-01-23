@@ -1,3 +1,36 @@
+# Theme configuration
+
+Select and customize your theme! These styles will be applied to every component in your generated web app.
+
+```css
+
+/**
+ * FONT INSTALLATION INSTRUCTIONS:
+ * 
+ * Add the following imports to your app/layout.tsx:
+ * 
+ * import { Poppins, Lora, Fira_Code } from 'next/font/google'
+ * 
+ * const fontPoppins = Poppins({
+ *   subsets: ['latin'],
+ *   variable: '--font-poppins',
+ * })
+ * 
+ * const fontLora = Lora({
+ *   weight: ['300', '400', '700'],
+ *   subsets: ['latin'],
+ *   variable: '--font-lora',
+ * })
+ * 
+ * const fontFira_Code = Fira_Code({
+ *   subsets: ['latin'],
+ *   variable: '--font-fira-code',
+ * })
+ * 
+ * Then add to your html element:
+ * <html className={`${fontPoppins.variable} ${fontLora.variable} ${fontFira_Code.variable}`}>
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -246,3 +279,4 @@
 .focus-ring-color:focus-visible {
   --tw-ring-color: var(--ring);
 }
+```
