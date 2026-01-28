@@ -1,7 +1,38 @@
+# Theme configuration
+
+Select and customize your theme! These styles will be applied to every component in your generated web app.
+
+```css
+
+/**
+ * FONT INSTALLATION INSTRUCTIONS:
+ * 
+ * Add the following imports to your app/layout.tsx:
+ * 
+ * import { Dm_Sans, ui-serif, Space_Mono } from 'next/font/google'
+ * 
+ * const fontDm_Sans = Dm_Sans({
+ *   subsets: ['latin'],
+ *   variable: '--font-dm-sans',
+ * })
+ * 
+ * const fontui-serif = ui-serif({
+ *   weight: ['300', '400', '700'],
+ *   subsets: ['latin'],
+ *   variable: '--font-ui-serif',
+ * })
+ * 
+ * const fontSpace_Mono = Space_Mono({
+ *   subsets: ['latin'],
+ *   variable: '--font-space-mono',
+ * })
+ * 
+ * Then add to your html element:
+ * <html className={`${fontDm_Sans.variable} ${fontui-serif.variable} ${fontSpace_Mono.variable}`}>
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: oklch(1 0 0);
@@ -107,7 +138,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground font-sans;
@@ -157,9 +188,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -251,3 +279,4 @@
 .focus-ring-color:focus-visible {
   --tw-ring-color: var(--ring);
 }
+```
