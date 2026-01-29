@@ -1,3 +1,30 @@
+# Theme configuration
+
+Select and customize your theme! These styles will be applied to every component in your generated web app.
+
+```css
+
+/**
+ * FONT INSTALLATION INSTRUCTIONS:
+ * 
+ * Add the following imports to your app/layout.tsx:
+ * 
+ * import { Dm_Sans, Space_Mono } from 'next/font/google'
+ * 
+ * const fontDm_Sans = Dm_Sans({
+ *   subsets: ['latin'],
+ *   variable: '--font-dm-sans',
+ * })
+ * 
+ * const fontSpace_Mono = Space_Mono({
+ *   subsets: ['latin'],
+ *   variable: '--font-space-mono',
+ * })
+ * 
+ * Then add to your html element:
+ * <html className={`${fontDm_Sans.variable} ${fontSpace_Mono.variable}`}>
+ */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -246,3 +273,4 @@
 .focus-ring-color:focus-visible {
   --tw-ring-color: var(--ring);
 }
+```
