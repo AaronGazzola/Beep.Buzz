@@ -1,21 +1,8 @@
 import type { Metadata } from "next";
-import { Dm_Sans, Space_Mono } from 'next/font/google'
-import "./globals.css";
-
-const fontDm_Sans = Dm_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
-})
-
-const fontSpace_Mono = Space_Mono({
-  subsets: ['latin'],
-  variable: '--font-space-mono',
-  weight: '400',
-})
 
 export const metadata: Metadata = {
   title: "Beep.Buzz",
-  description: "Your Next.js app",
+  description: "Beep.Buzz Application",
 };
 
 export default function RootLayout({
@@ -24,7 +11,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fontDm_Sans.variable} ${fontSpace_Mono.variable}`}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

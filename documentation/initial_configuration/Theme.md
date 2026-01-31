@@ -9,67 +9,63 @@ Select and customize your theme! These styles will be applied to every component
  * 
  * Add the following imports to your app/layout.tsx:
  * 
- * import { Dm_Sans, Space_Mono } from 'next/font/google'
+ * import { Libre_Baskerville } from 'next/font/google'
  * 
- * const fontDm_Sans = Dm_Sans({
+ * const fontLibre_Baskerville = Libre_Baskerville({
+ *   weight: ['300', '400', '700'],
  *   subsets: ['latin'],
- *   variable: '--font-dm-sans',
- * })
- * 
- * const fontSpace_Mono = Space_Mono({
- *   subsets: ['latin'],
- *   variable: '--font-space-mono',
+ *   variable: '--font-libre-baskerville',
  * })
  * 
  * Then add to your html element:
- * <html className={`${fontDm_Sans.variable} ${fontSpace_Mono.variable}`}>
+ * <html className={`${fontLibre_Baskerville.variable}`}>
  */
 
 @import "tailwindcss";
 @import "tw-animate-css";
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0 0 0);
-  --primary: oklch(0.6489 0.237 26.9728);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.968 0.211 109.7692);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.9551 0 0);
-  --muted-foreground: oklch(0.3211 0 0);
-  --accent: oklch(0.5635 0.2408 260.8178);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0 0 0);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0 0 0);
-  --input: oklch(0 0 0);
-  --ring: oklch(0.6489 0.237 26.9728);
-  --chart-1: oklch(0.6489 0.237 26.9728);
-  --chart-2: oklch(0.968 0.211 109.7692);
-  --chart-3: oklch(0.5635 0.2408 260.8178);
-  --chart-4: oklch(0.7323 0.2492 142.4953);
-  --chart-5: oklch(0.5931 0.2726 328.3634);
-  --sidebar: oklch(0.9551 0 0);
-  --sidebar-foreground: oklch(0 0 0);
-  --sidebar-primary: oklch(0.6489 0.237 26.9728);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.5635 0.2408 260.8178);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0 0 0);
-  --sidebar-ring: oklch(0.6489 0.237 26.9728);
+  --background: oklch(0.9755 0.0045 258.3245);
+  --foreground: oklch(0.2558 0.0433 268.0662);
+  --card: oklch(0.9341 0.0132 251.5628);
+  --card-foreground: oklch(0.2558 0.0433 268.0662);
+  --popover: oklch(0.9856 0.0278 98.054);
+  --popover-foreground: oklch(0.2558 0.0433 268.0662);
+  --primary: oklch(0.4815 0.1178 263.3758);
+  --primary-foreground: oklch(0.9856 0.0278 98.054);
+  --secondary: oklch(0.8567 0.1164 81.0092);
+  --secondary-foreground: oklch(0.2558 0.0433 268.0662);
+  --muted: oklch(0.9202 0.008 106.5563);
+  --muted-foreground: oklch(0.4815 0.1178 263.3758);
+  --accent: oklch(0.6896 0.0714 234.0387);
+  --accent-foreground: oklch(0.9856 0.0278 98.054);
+  --destructive: oklch(0.2611 0.0376 322.5267);
+  --destructive-foreground: oklch(0.9856 0.0278 98.054);
+  --border: oklch(0.7791 0.0156 251.1926);
+  --input: oklch(0.6896 0.0714 234.0387);
+  --ring: oklch(0.8567 0.1164 81.0092);
+  --chart-1: oklch(0.4815 0.1178 263.3758);
+  --chart-2: oklch(0.8567 0.1164 81.0092);
+  --chart-3: oklch(0.6896 0.0714 234.0387);
+  --chart-4: oklch(0.7791 0.0156 251.1926);
+  --chart-5: oklch(0.2611 0.0376 322.5267);
+  --sidebar: oklch(0.9341 0.0132 251.5628);
+  --sidebar-foreground: oklch(0.2558 0.0433 268.0662);
+  --sidebar-primary: oklch(0.4815 0.1178 263.3758);
+  --sidebar-primary-foreground: oklch(0.9856 0.0278 98.054);
+  --sidebar-accent: oklch(0.8567 0.1164 81.0092);
+  --sidebar-accent-foreground: oklch(0.2558 0.0433 268.0662);
+  --sidebar-border: oklch(0.7791 0.0156 251.1926);
+  --sidebar-ring: oklch(0.8567 0.1164 81.0092);
 
-  --font-sans: var(--font-dm-sans), sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono: var(--font-space-mono), monospace;
+  --font-sans: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-serif: var(--font-libre-baskerville), serif;
+  --font-mono:  ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --letter-spacing: 0px;
 
-  --radius: 0rem;
+  --radius: 0.5rem;
   --spacing: 0.25rem;
-  --shadow: 4px 4px 0px 0px oklch(0.0000 0.0000 0.0000);
+  --shadow: 0px 1px 3px 0px oklch(0 0 0 / 0.1);
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
@@ -80,47 +76,47 @@ Select and customize your theme! These styles will be applied to every component
 }
 
 .dark {
-  --background: oklch(0 0 0);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.3211 0 0);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.3211 0 0);
-  --popover-foreground: oklch(1 0 0);
-  --primary: oklch(0.7044 0.1872 23.1858);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.9691 0.2005 109.6228);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.2178 0 0);
-  --muted-foreground: oklch(0.8452 0 0);
-  --accent: oklch(0.6755 0.1765 252.2592);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(1 0 0);
-  --destructive-foreground: oklch(0 0 0);
-  --border: oklch(1 0 0);
-  --input: oklch(1 0 0);
-  --ring: oklch(0.7044 0.1872 23.1858);
-  --chart-1: oklch(0.7044 0.1872 23.1858);
-  --chart-2: oklch(0.9691 0.2005 109.6228);
-  --chart-3: oklch(0.6755 0.1765 252.2592);
-  --chart-4: oklch(0.7395 0.2268 142.8504);
-  --chart-5: oklch(0.6131 0.2458 328.0714);
-  --sidebar: oklch(0 0 0);
-  --sidebar-foreground: oklch(1 0 0);
-  --sidebar-primary: oklch(0.7044 0.1872 23.1858);
-  --sidebar-primary-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.6755 0.1765 252.2592);
-  --sidebar-accent-foreground: oklch(0 0 0);
-  --sidebar-border: oklch(1 0 0);
-  --sidebar-ring: oklch(0.7044 0.1872 23.1858);
+  --background: oklch(0.2204 0.0198 275.8439);
+  --foreground: oklch(0.9366 0.0129 266.6974);
+  --card: oklch(0.2703 0.0407 281.3036);
+  --card-foreground: oklch(0.9366 0.0129 266.6974);
+  --popover: oklch(0.2703 0.0407 281.3036);
+  --popover-foreground: oklch(0.9097 0.144 95.112);
+  --primary: oklch(0.4815 0.1178 263.3758);
+  --primary-foreground: oklch(0.9097 0.144 95.112);
+  --secondary: oklch(0.9097 0.144 95.112);
+  --secondary-foreground: oklch(0.2703 0.0407 281.3036);
+  --muted: oklch(0.2424 0.0324 281.089);
+  --muted-foreground: oklch(0.6243 0.0412 262.0375);
+  --accent: oklch(0.8469 0.0524 264.7751);
+  --accent-foreground: oklch(0.2204 0.0198 275.8439);
+  --destructive: oklch(0.528 0.12 357.113);
+  --destructive-foreground: oklch(0.9097 0.144 95.112);
+  --border: oklch(0.3072 0.0287 281.7681);
+  --input: oklch(0.4815 0.1178 263.3758);
+  --ring: oklch(0.9097 0.144 95.112);
+  --chart-1: oklch(0.4815 0.1178 263.3758);
+  --chart-2: oklch(0.9097 0.144 95.112);
+  --chart-3: oklch(0.6896 0.0714 234.0387);
+  --chart-4: oklch(0.6243 0.0412 262.0375);
+  --chart-5: oklch(0.528 0.12 357.113);
+  --sidebar: oklch(0.2703 0.0407 281.3036);
+  --sidebar-foreground: oklch(0.9366 0.0129 266.6974);
+  --sidebar-primary: oklch(0.4815 0.1178 263.3758);
+  --sidebar-primary-foreground: oklch(0.9097 0.144 95.112);
+  --sidebar-accent: oklch(0.9097 0.144 95.112);
+  --sidebar-accent-foreground: oklch(0.2703 0.0407 281.3036);
+  --sidebar-border: oklch(0.3072 0.0287 281.7681);
+  --sidebar-ring: oklch(0.9097 0.144 95.112);
 
-  --font-sans: var(--font-dm-sans), sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono: var(--font-space-mono), monospace;
+  --font-sans: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-serif: var(--font-libre-baskerville), serif;
+  --font-mono:  ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --letter-spacing: 0px;
 
-  --radius: 0rem;
+  --radius: 0.5rem;
   --spacing: 0.25rem;
-  --shadow: 4px 4px 0px 0px oklch(0.0000 0.0000 0.0000);
+  --shadow: 0px 1px 3px 0px oklch(0 0 0 / 0.1);
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
@@ -135,7 +131,7 @@ Select and customize your theme! These styles will be applied to every component
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-serif;
     letter-spacing: var(--letter-spacing);
   }
 }
