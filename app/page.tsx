@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Volume2, BookOpen, Zap, Trophy } from "lucide-react";
+import { MorseCharacters } from "@/components/MorseCharacters";
 
 export default function Home() {
   const { inputText, morseCode, isPlaying, handleTextChange, handlePlayAudio } = useMorseDemo();
@@ -44,6 +45,8 @@ export default function Home() {
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
           Master Morse code through interactive training, practice challenges, and competitive gameplay
         </p>
+
+        <MorseCharacters className="mb-12" />
 
         <Card className="max-w-2xl mx-auto mb-8">
           <CardHeader>
