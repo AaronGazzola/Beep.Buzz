@@ -1,16 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMorseDemo } from "./page.hooks";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Volume2, BookOpen, Zap, Trophy } from "lucide-react";
-import { MorseCharacters } from "@/components/MorseCharacters";
+import { BookOpen, Zap, Trophy } from "lucide-react";
+import { MorseTrainer } from "@/components/MorseTrainer";
 
 export default function Home() {
-  const { inputText, morseCode, isPlaying, handleTextChange, handlePlayAudio } = useMorseDemo();
-
   const modes = [
     {
       icon: BookOpen,
@@ -46,36 +42,13 @@ export default function Home() {
           Master Morse code through interactive training, practice challenges, and competitive gameplay
         </p>
 
-        <MorseCharacters className="mb-12" />
-
-        <Card className="max-w-2xl mx-auto mb-8">
+        <Card className="max-w-3xl mx-auto mb-8">
           <CardHeader>
             <CardTitle>Try It Out</CardTitle>
-            <CardDescription>Type some text and see it converted to Morse code</CardDescription>
+            <CardDescription>Learn Morse code with Beep and Buzz</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Input
-              placeholder="Type your message..."
-              value={inputText}
-              onChange={(e) => handleTextChange(e.target.value)}
-              className="text-lg"
-            />
-            {morseCode && (
-              <div className="space-y-2">
-                <div className="font-mono text-2xl p-4 bg-muted rounded-lg break-all">
-                  {morseCode}
-                </div>
-                <Button
-                  onClick={handlePlayAudio}
-                  disabled={isPlaying}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Volume2 className="mr-2 h-4 w-4" />
-                  {isPlaying ? "Playing..." : "Play Audio"}
-                </Button>
-              </div>
-            )}
+          <CardContent>
+            <MorseTrainer />
           </CardContent>
         </Card>
 

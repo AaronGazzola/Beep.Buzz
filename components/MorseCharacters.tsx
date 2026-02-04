@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type Speaker = "beep" | "buzz";
 
 interface MorseCharactersProps {
   className?: string;
+  currentSpeaker?: Speaker;
+  message?: string;
+  onSpeakerChange?: (speaker: Speaker) => void;
+  interactive?: boolean;
 }
 
 interface CharacterProps {
@@ -288,9 +292,13 @@ function BuzzCharacter({ isSpeaking, className }: CharacterProps) {
 function SpeechBubble({
   speaker,
   message,
+  showMorse,
+  action,
 }: {
   speaker: Speaker;
   message: string;
+  showMorse?: string;
+  action?: ReactNode;
 }) {
   return (
     <div className="relative w-full max-w-[280px] mx-auto">
@@ -298,12 +306,19 @@ function SpeechBubble({
         className={cn(
           "bg-white dark:bg-gray-800 rounded-2xl px-5 py-4",
           "border-2 border-gray-300 dark:border-gray-600",
-          "text-center transition-all duration-300"
+          "text-center transition-all duration-300",
+          "min-h-[80px] flex flex-col items-center justify-center gap-2"
         )}
       >
         <p className="text-base font-medium text-gray-800 dark:text-gray-100">
           {message}
         </p>
+        {showMorse && (
+          <p className="text-sm font-mono text-muted-foreground break-all">
+            {showMorse}
+          </p>
+        )}
+        {action}
       </div>
 
       {speaker === "beep" && (
@@ -378,16 +393,33 @@ function SpeechBubble({
   );
 }
 
-export function MorseCharacters({ className }: MorseCharactersProps) {
-  const [currentSpeaker, setCurrentSpeaker] = useState<Speaker>("beep");
+export function MorseCharacters({
+  className,
+  currentSpeaker: controlledSpeaker,
+  message: controlledMessage,
+  onSpeakerChange,
+  interactive = true,
+}: MorseCharactersProps) {
+  const [internalSpeaker, setInternalSpeaker] = useState<Speaker>("beep");
 
-  const handleClick = () => {
-    setCurrentSpeaker((prev) => (prev === "beep" ? "buzz" : "beep"));
-  };
+  const currentSpeaker = controlledSpeaker ?? internalSpeaker;
 
-  const messages = {
+  const defaultMessages = {
     beep: "Hi! I'm Beep! I represent the dots in Morse code.",
     buzz: "And I'm Buzz! I represent the dashes!",
+  };
+
+  const message = controlledMessage ?? defaultMessages[currentSpeaker];
+
+  const handleClick = () => {
+    if (!interactive) return;
+
+    const newSpeaker = currentSpeaker === "beep" ? "buzz" : "beep";
+    if (onSpeakerChange) {
+      onSpeakerChange(newSpeaker);
+    } else {
+      setInternalSpeaker(newSpeaker);
+    }
   };
 
   return (
@@ -395,7 +427,8 @@ export function MorseCharacters({ className }: MorseCharactersProps) {
       onClick={handleClick}
       className={cn(
         "flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-8",
-        "cursor-pointer select-none p-4",
+        interactive && "cursor-pointer",
+        "select-none p-4",
         className
       )}
     >
@@ -407,7 +440,7 @@ export function MorseCharacters({ className }: MorseCharactersProps) {
       </div>
 
       <div className="lg:order-2">
-        <SpeechBubble speaker={currentSpeaker} message={messages[currentSpeaker]} />
+        <SpeechBubble speaker={currentSpeaker} message={message} />
       </div>
 
       <div className="flex flex-col items-center gap-1 lg:order-3">
@@ -419,3 +452,6 @@ export function MorseCharacters({ className }: MorseCharactersProps) {
     </div>
   );
 }
+
+export { BeepCharacter, BuzzCharacter, SpeechBubble };
+export type { Speaker };
