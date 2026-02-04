@@ -1,8 +1,10 @@
 import { create } from "zustand";
-import { Difficulty, GamePhase, GameState } from "./page.types";
+import { ChallengeAttempt, Difficulty, GameMode, GamePhase, GameState, PracticeType } from "./page.types";
 
 interface GameStore extends GameState {
   setPhase: (phase: GamePhase) => void;
+  setMode: (mode: GameMode) => void;
+  setPracticeType: (practiceType: PracticeType) => void;
   setDifficulty: (difficulty: Difficulty) => void;
   setChallenge: (challenge: string, morse: string) => void;
   setUserInput: (input: string) => void;
@@ -10,26 +12,48 @@ interface GameStore extends GameState {
   addCharacterGap: () => void;
   addWordGap: () => void;
   clearUserInput: () => void;
+  setUserTextInput: (input: string) => void;
+  clearUserTextInput: () => void;
   setIsCorrect: (isCorrect: boolean | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
   incrementScore: () => void;
   incrementStreak: () => void;
   resetStreak: () => void;
+  startSession: () => void;
+  startChallenge: () => void;
+  recordAttempt: (attempt: Omit<ChallengeAttempt, "attemptNumber" | "timestamp">) => void;
+  getSessionSummary: () => {
+    totalAttempts: number;
+    correctAttempts: number;
+    accuracy: number;
+    maxStreak: number;
+    score: number;
+    attempts: ChallengeAttempt[];
+  };
   resetGame: () => void;
 }
 
-export const useGameStore = create<GameStore>((set) => ({
+export const useGameStore = create<GameStore>((set, get) => ({
   phase: "idle",
+  mode: "training",
+  practiceType: "text-to-morse",
   difficulty: "letter",
   currentChallenge: "",
   currentMorse: "",
   userInput: "",
+  userTextInput: "",
   isCorrect: null,
   isPlaying: false,
   score: 0,
   streak: 0,
+  maxStreak: 0,
+  attempts: [],
+  sessionStartTime: null,
+  challengeStartTime: null,
 
   setPhase: (phase) => set({ phase }),
+  setMode: (mode) => set({ mode, phase: "idle", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
+  setPracticeType: (practiceType) => set({ practiceType }),
   setDifficulty: (difficulty) => set({ difficulty }),
   setChallenge: (challenge, morse) =>
     set({ currentChallenge: challenge, currentMorse: morse }),
@@ -51,20 +75,63 @@ export const useGameStore = create<GameStore>((set) => ({
       return { userInput: trimmed + " / " };
     }),
   clearUserInput: () => set({ userInput: "" }),
+  setUserTextInput: (input) => set({ userTextInput: input }),
+  clearUserTextInput: () => set({ userTextInput: "" }),
   setIsCorrect: (isCorrect) => set({ isCorrect }),
   setIsPlaying: (isPlaying) => set({ isPlaying }),
   incrementScore: () => set((state) => ({ score: state.score + 1 })),
-  incrementStreak: () => set((state) => ({ streak: state.streak + 1 })),
+  incrementStreak: () =>
+    set((state) => {
+      const newStreak = state.streak + 1;
+      return {
+        streak: newStreak,
+        maxStreak: Math.max(state.maxStreak, newStreak),
+      };
+    }),
   resetStreak: () => set({ streak: 0 }),
+  startSession: () => set({ sessionStartTime: Date.now(), attempts: [], score: 0, streak: 0, maxStreak: 0 }),
+  startChallenge: () => set({ challengeStartTime: Date.now() }),
+  recordAttempt: (attempt) =>
+    set((state) => {
+      const responseTimeMs = state.challengeStartTime
+        ? Date.now() - state.challengeStartTime
+        : undefined;
+      const newAttempt: ChallengeAttempt = {
+        ...attempt,
+        attemptNumber: state.attempts.length + 1,
+        timestamp: Date.now(),
+        responseTimeMs,
+      };
+      return { attempts: [...state.attempts, newAttempt] };
+    }),
+  getSessionSummary: () => {
+    const state = get();
+    const totalAttempts = state.attempts.length;
+    const correctAttempts = state.attempts.filter((a) => a.isCorrect).length;
+    const accuracy = totalAttempts > 0 ? (correctAttempts / totalAttempts) * 100 : 0;
+    return {
+      totalAttempts,
+      correctAttempts,
+      accuracy,
+      maxStreak: state.maxStreak,
+      score: state.score,
+      attempts: state.attempts,
+    };
+  },
   resetGame: () =>
     set({
       phase: "idle",
       currentChallenge: "",
       currentMorse: "",
       userInput: "",
+      userTextInput: "",
       isCorrect: null,
       isPlaying: false,
       score: 0,
       streak: 0,
+      maxStreak: 0,
+      attempts: [],
+      sessionStartTime: null,
+      challengeStartTime: null,
     }),
 }));

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Zap, Trophy } from "lucide-react";
 import { MorseTrainer } from "@/components/MorseTrainer";
+import { InlineSignUp } from "@/components/InlineSignUp";
 
 export default function Home() {
   const modes = [
@@ -51,6 +52,8 @@ export default function Home() {
             <MorseTrainer />
           </CardContent>
         </Card>
+
+        <InlineSignUp className="mb-8" />
 
         <div className="flex gap-4 justify-center">
           <Button asChild size="lg">

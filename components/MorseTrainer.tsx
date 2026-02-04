@@ -1,8 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useGameStore } from "@/app/page.stores";
 import {
   textToMorse,
@@ -12,7 +21,7 @@ import {
 } from "@/lib/morse.utils";
 import { BeepCharacter, BuzzCharacter, SpeechBubble } from "./MorseCharacters";
 import type { Speaker } from "./MorseCharacters";
-import type { Difficulty } from "@/app/page.types";
+import type { Difficulty, GameMode, PracticeType } from "@/app/page.types";
 
 const DOT_THRESHOLD = 200;
 const CHARACTER_GAP_THRESHOLD = 400;
@@ -43,25 +52,37 @@ function generateChallenge(difficulty: Difficulty): string {
 export function MorseTrainer({ className }: { className?: string }) {
   const {
     phase,
+    mode,
+    practiceType,
     difficulty,
     currentChallenge,
     currentMorse,
     userInput,
+    userTextInput,
     isCorrect,
     isPlaying,
     score,
     streak,
+    attempts,
     setPhase,
+    setMode,
+    setPracticeType,
     setDifficulty,
     setChallenge,
     appendToUserInput,
     addCharacterGap,
     clearUserInput,
+    setUserTextInput,
+    clearUserTextInput,
     setIsCorrect,
     setIsPlaying,
     incrementScore,
     incrementStreak,
     resetStreak,
+    startSession,
+    startChallenge,
+    recordAttempt,
+    getSessionSummary,
     resetGame,
   } = useGameStore();
 
@@ -195,34 +216,70 @@ export function MorseTrainer({ className }: { className?: string }) {
     };
   }, [clearGapTimers]);
 
-  const startNewChallenge = useCallback(async () => {
+  const startNewChallenge = useCallback(async (isFirstChallenge = false) => {
+    if (isFirstChallenge) {
+      startSession();
+    }
+
     const challenge = generateChallenge(difficulty);
     const morse = textToMorse(challenge);
 
     setChallenge(challenge, morse);
     setPhase("presenting");
     clearUserInput();
+    clearUserTextInput();
     setIsCorrect(null);
 
-    setIsPlaying(true);
-    try {
-      await playMorseAudio(morse, { volume: 0.5, wpm: 15, frequency: 600 });
-    } finally {
-      setIsPlaying(false);
+    if (mode === "training") {
+      setIsPlaying(true);
+      try {
+        await playMorseAudio(morse, { volume: 0.5, wpm: 15, frequency: 600 });
+      } finally {
+        setIsPlaying(false);
+      }
+    } else if (mode === "practice" && practiceType === "morse-to-text") {
+      setIsPlaying(true);
+      try {
+        await playMorseAudio(morse, { volume: 0.5, wpm: 15, frequency: 600 });
+      } finally {
+        setIsPlaying(false);
+      }
     }
-  }, [difficulty, setChallenge, setPhase, clearUserInput, setIsCorrect, setIsPlaying]);
+  }, [difficulty, mode, practiceType, setChallenge, setPhase, clearUserInput, clearUserTextInput, setIsCorrect, setIsPlaying, startSession]);
 
   const handleReadyToRespond = () => {
     setPhase("responding");
+    startChallenge();
+    if (mode === "practice" && practiceType === "morse-to-text") {
+      return;
+    }
     containerRef.current?.focus();
   };
 
   const handleSubmit = () => {
     clearGapTimers();
 
-    const userMorse = userInput.trim();
-    const expectedMorse = currentMorse;
-    const correct = userMorse === expectedMorse;
+    let correct = false;
+    let submittedInput = "";
+
+    if (mode === "training" || (mode === "practice" && practiceType === "text-to-morse")) {
+      const userMorse = userInput.trim();
+      const expectedMorse = currentMorse;
+      correct = userMorse === expectedMorse;
+      submittedInput = userMorse;
+    } else if (mode === "practice" && practiceType === "morse-to-text") {
+      const userText = userTextInput.trim().toUpperCase();
+      correct = userText === currentChallenge;
+      submittedInput = userText;
+    }
+
+    recordAttempt({
+      challengeText: currentChallenge,
+      expectedMorse: currentMorse,
+      userInput: submittedInput,
+      isCorrect: correct,
+      challengeType: difficulty,
+    });
 
     setIsCorrect(correct);
     setPhase("feedback");
@@ -251,20 +308,56 @@ export function MorseTrainer({ className }: { className?: string }) {
   }, [isPlaying, currentMorse, setIsPlaying]);
 
   const getMessage = (): string => {
+    if (mode === "training") {
+      switch (phase) {
+        case "idle":
+          return "Ready to learn Morse code? Click Start to begin!";
+        case "presenting":
+          return isPlaying
+            ? `Listen carefully: "${currentChallenge}"`
+            : `Did you hear that? The letter was "${currentChallenge}"`;
+        case "responding":
+          return userInput || "Your turn! Click anywhere or hold SPACE";
+        case "feedback":
+          if (isCorrect) {
+            return `Correct! "${currentChallenge}" = ${currentMorse}`;
+          }
+          return `Not quite. "${currentChallenge}" = ${currentMorse}. You entered: ${userInput || "(nothing)"}`;
+        default:
+          return "";
+      }
+    }
+
+    if (practiceType === "text-to-morse") {
+      switch (phase) {
+        case "idle":
+          return "Translate text to Morse code. Click Start!";
+        case "presenting":
+          return `Translate: "${currentChallenge}"`;
+        case "responding":
+          return userInput || "Enter the Morse code...";
+        case "feedback":
+          if (isCorrect) {
+            return `Correct! "${currentChallenge}" = ${currentMorse}`;
+          }
+          return `Not quite. "${currentChallenge}" = ${currentMorse}. You entered: ${userInput || "(nothing)"}`;
+        default:
+          return "";
+      }
+    }
+
     switch (phase) {
       case "idle":
-        return "Ready to learn Morse code? Click Start to begin!";
+        return "Translate Morse code to text. Click Start!";
       case "presenting":
-        return isPlaying
-          ? `Listen carefully: "${currentChallenge}"`
-          : `Did you hear that? The letter was "${currentChallenge}"`;
+        return isPlaying ? "Listen to the Morse code..." : "What did you hear?";
       case "responding":
-        return userInput || "Your turn! Click anywhere or hold SPACE";
+        return userTextInput || "Type your answer...";
       case "feedback":
         if (isCorrect) {
-          return `Correct! "${currentChallenge}" = ${currentMorse}`;
+          return `Correct! The answer was "${currentChallenge}"`;
         }
-        return `Not quite. "${currentChallenge}" = ${currentMorse}. You entered: ${userInput || "(nothing)"}`;
+        return `Not quite. The answer was "${currentChallenge}". You entered: ${userTextInput || "(nothing)"}`;
       default:
         return "";
     }
@@ -272,10 +365,51 @@ export function MorseTrainer({ className }: { className?: string }) {
 
   return (
     <div className={cn("flex flex-col items-center gap-6", className)}>
-      <div className="flex items-center gap-4 text-sm">
-        <span className="font-medium">Score: {score}</span>
-        <span className="text-muted-foreground">|</span>
-        <span className="font-medium">Streak: {streak}</span>
+      <div className="flex flex-wrap items-center justify-between w-full gap-4">
+        <div className="flex items-center gap-2">
+          <Select
+            value={mode}
+            onValueChange={(value: GameMode) => setMode(value)}
+            disabled={phase !== "idle"}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="training">Training</SelectItem>
+              <SelectItem value="practice">Practice</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {mode === "practice" && (
+            <Select
+              value={practiceType}
+              onValueChange={(value: PracticeType) => setPracticeType(value)}
+              disabled={phase !== "idle"}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text-to-morse">Text → Morse</SelectItem>
+                <SelectItem value="morse-to-text">Morse → Text</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 text-sm">
+          <span className="font-medium">Score: {score}</span>
+          <span className="text-muted-foreground">|</span>
+          <span className="font-medium">Streak: {streak}</span>
+          <button
+            onClick={resetGame}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Reset"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -295,10 +429,10 @@ export function MorseTrainer({ className }: { className?: string }) {
       <div
         ref={containerRef}
         tabIndex={phase === "responding" ? 0 : -1}
-        onMouseDown={phase === "responding" ? handlePressStart : undefined}
-        onMouseUp={phase === "responding" ? handlePressEnd : undefined}
+        onMouseDown={phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text") ? handlePressStart : undefined}
+        onMouseUp={phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text") ? handlePressEnd : undefined}
         onMouseLeave={
-          phase === "responding"
+          phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text")
             ? () => {
                 if (pressStartRef.current !== null) {
                   handlePressEnd();
@@ -307,7 +441,7 @@ export function MorseTrainer({ className }: { className?: string }) {
             : undefined
         }
         onTouchStart={
-          phase === "responding"
+          phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text")
             ? (e) => {
                 e.preventDefault();
                 handlePressStart();
@@ -315,7 +449,7 @@ export function MorseTrainer({ className }: { className?: string }) {
             : undefined
         }
         onTouchEnd={
-          phase === "responding"
+          phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text")
             ? (e) => {
                 e.preventDefault();
                 handlePressEnd();
@@ -324,8 +458,8 @@ export function MorseTrainer({ className }: { className?: string }) {
         }
         className={cn(
           "flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-8 select-none p-4 rounded-2xl transition-all",
-          phase === "responding" && "cursor-pointer bg-muted/50 hover:bg-muted/70 active:bg-muted",
-          phase === "responding" && "focus:outline-none focus:ring-4 focus:ring-primary/50"
+          phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text") && "cursor-pointer bg-muted/50 hover:bg-muted/70 active:bg-muted",
+          phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text") && "focus:outline-none focus:ring-4 focus:ring-primary/50"
         )}
       >
         <div className="flex flex-col items-center gap-1 lg:order-1">
@@ -340,9 +474,13 @@ export function MorseTrainer({ className }: { className?: string }) {
           <SpeechBubble
             speaker={currentSpeaker}
             message={getMessage()}
-            showMorse={phase === "responding" ? userInput : undefined}
+            showMorse={
+              phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text")
+                ? userInput
+                : undefined
+            }
             action={
-              phase === "presenting" && !isPlaying ? (
+              phase === "presenting" && !isPlaying && (mode === "training" || practiceType === "morse-to-text") ? (
                 <button
                   onClick={handleReplayAudio}
                   className="text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
@@ -365,8 +503,8 @@ export function MorseTrainer({ className }: { className?: string }) {
 
       <div className="flex flex-col items-center gap-4">
         {phase === "idle" && (
-          <Button onClick={startNewChallenge} size="lg">
-            Start Training
+          <Button onClick={() => startNewChallenge(true)} size="lg">
+            {mode === "training" ? "Start Training" : "Start Practice"}
           </Button>
         )}
 
@@ -376,7 +514,7 @@ export function MorseTrainer({ className }: { className?: string }) {
           </Button>
         )}
 
-        {phase === "responding" && (
+        {phase === "responding" && !(mode === "practice" && practiceType === "morse-to-text") && (
           <div className="flex flex-col items-center gap-4">
             <p className="text-sm text-muted-foreground">
               Short press = dot (.) | Long press = dash (-)
@@ -386,6 +524,32 @@ export function MorseTrainer({ className }: { className?: string }) {
                 Clear
               </Button>
               <Button onClick={(e) => { e.stopPropagation(); handleSubmit(); }} disabled={!userInput}>
+                Submit
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {phase === "responding" && mode === "practice" && practiceType === "morse-to-text" && (
+          <div className="flex flex-col items-center gap-4">
+            <Input
+              type="text"
+              placeholder="Type your answer..."
+              value={userTextInput}
+              onChange={(e) => setUserTextInput(e.target.value.toUpperCase())}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && userTextInput) {
+                  handleSubmit();
+                }
+              }}
+              className="w-64 text-center text-lg uppercase"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={clearUserTextInput}>
+                Clear
+              </Button>
+              <Button onClick={handleSubmit} disabled={!userTextInput}>
                 Submit
               </Button>
             </div>
