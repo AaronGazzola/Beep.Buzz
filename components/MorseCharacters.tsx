@@ -149,7 +149,7 @@ function BeepCharacter({ isSpeaking, className }: CharacterProps) {
       >
         <path
           d={path}
-          className="fill-primary stroke-primary"
+          className="fill-chart-3 stroke-chart-3"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -294,101 +294,185 @@ function SpeechBubble({
   message,
   showMorse,
   action,
+  buttons,
 }: {
   speaker: Speaker;
-  message: string;
+  message: string | ReactNode;
   showMorse?: string;
   action?: ReactNode;
+  buttons?: ReactNode;
 }) {
+  const [bubblePath, setBubblePath] = useState("");
+  const cornerOffsetsRef = useRef<{ phase: number; speed: number }[]>([]);
+  const pointerOffsetRef = useRef({ phase: Math.random() * Math.PI * 2, speed: 0.8 });
+
+  useEffect(() => {
+    cornerOffsetsRef.current = Array.from({ length: 4 }, () => ({
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.5 + Math.random() * 0.8,
+    }));
+    pointerOffsetRef.current = { phase: Math.random() * Math.PI * 2, speed: 0.8 };
+  }, []);
+
+  const generateBubblePath = useCallback(
+    (time: number, isMobile: boolean) => {
+      const left = isMobile ? 20 : 60;
+      const right = isMobile ? 380 : 340;
+      const top = 2;
+      const bottom = isMobile ? 298 : 198;
+      const cornerRadius = speaker === "beep" ? 25 : 0;
+      const centerY = isMobile ? 150 : 75;
+      const centerX = 200;
+      const pointerHeight = 40;
+      const pointerWidth = 40;
+
+      const variation = (index: number) => {
+        const offset = cornerOffsetsRef.current[index];
+        if (!offset) return 0;
+        return Math.sin(time * 0.001 * offset.speed + offset.phase) * 3.5;
+      };
+
+      const pointerVariation = Math.sin(time * 0.001 * pointerOffsetRef.current.speed + pointerOffsetRef.current.phase) * 2.25;
+
+      const corners = [
+        { x: left + variation(0), y: top + variation(0) },
+        { x: right + variation(1), y: top + variation(1) },
+        { x: right + variation(2), y: bottom + variation(2) },
+        { x: left + variation(3), y: bottom + variation(3) },
+      ];
+
+      if (isMobile) {
+        if (speaker === "beep") {
+          const [tl, tr, br, bl] = corners;
+          const pointerLeftX = centerX - pointerWidth / 2;
+          const pointerRightX = centerX + pointerWidth / 2;
+          const tipY = -15 + pointerVariation;
+
+          return `
+            M ${tl.x + cornerRadius} ${tl.y}
+            L ${pointerLeftX} ${tl.y}
+            L ${centerX} ${tipY}
+            L ${pointerRightX} ${tl.y}
+            L ${tr.x - cornerRadius} ${tr.y}
+            Q ${tr.x} ${tr.y}, ${tr.x} ${tr.y + cornerRadius}
+            L ${br.x} ${br.y - cornerRadius}
+            Q ${br.x} ${br.y}, ${br.x - cornerRadius} ${br.y}
+            L ${bl.x + cornerRadius} ${bl.y}
+            Q ${bl.x} ${bl.y}, ${bl.x} ${bl.y - cornerRadius}
+            L ${tl.x} ${tl.y + cornerRadius}
+            Q ${tl.x} ${tl.y}, ${tl.x + cornerRadius} ${tl.y}
+            Z
+          `;
+        } else {
+          const [tl, tr, br, bl] = corners;
+          const pointerLeftX = centerX - pointerWidth / 2;
+          const pointerRightX = centerX + pointerWidth / 2;
+          const tipY = 215 + pointerVariation;
+
+          return `
+            M ${tl.x} ${tl.y}
+            L ${tr.x} ${tr.y}
+            L ${br.x} ${br.y}
+            L ${pointerRightX} ${br.y}
+            L ${centerX} ${tipY}
+            L ${pointerLeftX} ${br.y}
+            L ${bl.x} ${bl.y}
+            Z
+          `;
+        }
+      } else {
+        if (speaker === "beep") {
+          const [tl, tr, br, bl] = corners;
+          const pointerTopY = centerY - pointerHeight / 2;
+          const pointerBottomY = centerY + pointerHeight / 2;
+          const tipX = 20 + pointerVariation;
+
+          return `
+            M ${tl.x + cornerRadius} ${tl.y}
+            L ${tr.x - cornerRadius} ${tr.y}
+            Q ${tr.x} ${tr.y}, ${tr.x} ${tr.y + cornerRadius}
+            L ${br.x} ${br.y - cornerRadius}
+            Q ${br.x} ${br.y}, ${br.x - cornerRadius} ${br.y}
+            L ${bl.x + cornerRadius} ${bl.y}
+            Q ${bl.x} ${bl.y}, ${bl.x} ${bl.y - cornerRadius}
+            L ${tl.x} ${pointerBottomY}
+            L ${tipX} ${centerY}
+            L ${tl.x} ${pointerTopY}
+            L ${tl.x} ${tl.y + cornerRadius}
+            Q ${tl.x} ${tl.y}, ${tl.x + cornerRadius} ${tl.y}
+            Z
+          `;
+        } else {
+          const [tl, tr, br, bl] = corners;
+          const pointerTopY = centerY - pointerHeight / 2;
+          const pointerBottomY = centerY + pointerHeight / 2;
+          const tipX = 380 + pointerVariation;
+
+          return `
+            M ${tl.x} ${tl.y}
+            L ${tr.x} ${tr.y}
+            L ${tr.x} ${pointerTopY}
+            L ${tipX} ${centerY}
+            L ${tr.x} ${pointerBottomY}
+            L ${br.x} ${br.y}
+            L ${bl.x} ${bl.y}
+            Z
+          `;
+        }
+      }
+    },
+    [speaker]
+  );
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useAnimationFrame((time) => {
+    setBubblePath(generateBubblePath(time, isMobile));
+  });
+
+  const strokeColor = speaker === "beep" ? "stroke-chart-3" : "stroke-accent-foreground";
+  const fillColor = "fill-background";
+
   return (
-    <div className="relative w-full max-w-[280px] mx-auto">
-      <div
-        className={cn(
-          "bg-white dark:bg-gray-800 rounded-2xl px-5 py-4",
-          "border-2 border-gray-300 dark:border-gray-600",
-          "text-center transition-all duration-300",
-          "min-h-[80px] flex flex-col items-center justify-center gap-2"
-        )}
+    <div className="relative w-full h-full overflow-visible">
+      <svg
+        viewBox={isMobile ? "0 0 400 300" : "0 0 400 200"}
+        className="w-full h-full overflow-visible"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ overflow: "visible" }}
       >
-        <p className="text-base font-medium text-gray-800 dark:text-gray-100">
-          {message}
-        </p>
-        {showMorse && (
-          <p className="text-sm font-mono text-muted-foreground break-all">
-            {showMorse}
-          </p>
-        )}
-        {action}
+        <path
+          d={bubblePath}
+          className={cn(fillColor, strokeColor)}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center z-10 text-center px-12">
+        <div className="max-w-[280px]">
+          <div className="text-2xl font-medium text-foreground leading-relaxed">
+            {message}
+          </div>
+          {showMorse && (
+            <p className="text-lg font-mono text-muted-foreground break-all mt-2">
+              {showMorse}
+            </p>
+          )}
+          {action && <div className="mt-2">{action}</div>}
+          {buttons && <div className="mt-2">{buttons}</div>}
+        </div>
       </div>
-
-      {speaker === "beep" && (
-        <>
-          <div
-            className={cn(
-              "absolute w-0 h-0 lg:hidden",
-              "border-l-[10px] border-l-transparent",
-              "border-r-[10px] border-r-transparent",
-              "border-b-[12px] border-b-gray-300 dark:border-b-gray-600",
-              "left-1/2 -translate-x-1/2 top-0 -translate-y-full"
-            )}
-          />
-          <div
-            className={cn(
-              "absolute w-0 h-0 lg:hidden",
-              "border-l-[8px] border-l-transparent",
-              "border-r-[8px] border-r-transparent",
-              "border-b-[10px] border-b-white dark:border-b-gray-800",
-              "left-1/2 -translate-x-1/2 top-0 -translate-y-[calc(100%-2px)]"
-            )}
-          />
-        </>
-      )}
-
-      {speaker === "buzz" && (
-        <>
-          <div
-            className={cn(
-              "absolute w-0 h-0 lg:hidden",
-              "border-l-[10px] border-l-transparent",
-              "border-r-[10px] border-r-transparent",
-              "border-t-[12px] border-t-gray-300 dark:border-t-gray-600",
-              "left-1/2 -translate-x-1/2 bottom-0 translate-y-full"
-            )}
-          />
-          <div
-            className={cn(
-              "absolute w-0 h-0 lg:hidden",
-              "border-l-[8px] border-l-transparent",
-              "border-r-[8px] border-r-transparent",
-              "border-t-[10px] border-t-white dark:border-t-gray-800",
-              "left-1/2 -translate-x-1/2 bottom-0 translate-y-[calc(100%-2px)]"
-            )}
-          />
-        </>
-      )}
-
-      <div
-        className={cn(
-          "hidden lg:block absolute w-0 h-0",
-          "border-t-[10px] border-t-transparent",
-          "border-b-[10px] border-b-transparent",
-          "top-1/2 -translate-y-1/2",
-          speaker === "beep"
-            ? "border-r-[12px] border-r-gray-300 dark:border-r-gray-600 left-0 -translate-x-full"
-            : "border-l-[12px] border-l-gray-300 dark:border-l-gray-600 right-0 translate-x-full"
-        )}
-      />
-      <div
-        className={cn(
-          "hidden lg:block absolute w-0 h-0",
-          "border-t-[8px] border-t-transparent",
-          "border-b-[8px] border-b-transparent",
-          "top-1/2 -translate-y-1/2",
-          speaker === "beep"
-            ? "border-r-[10px] border-r-white dark:border-r-gray-800 left-0 -translate-x-[calc(100%-2px)]"
-            : "border-l-[10px] border-l-white dark:border-l-gray-800 right-0 translate-x-[calc(100%-2px)]"
-        )}
-      />
     </div>
   );
 }
@@ -436,7 +520,7 @@ export function MorseCharacters({
         <div className="w-24 h-24 md:w-32 md:h-32">
           <BeepCharacter isSpeaking={currentSpeaker === "beep"} />
         </div>
-        <span className="text-sm font-semibold text-primary">Beep</span>
+        <span className="text-lg font-semibold text-chart-3">Beep</span>
       </div>
 
       <div className="lg:order-2">
@@ -447,7 +531,7 @@ export function MorseCharacters({
         <div className="w-24 h-24 md:w-32 md:h-32">
           <BuzzCharacter isSpeaking={currentSpeaker === "buzz"} />
         </div>
-        <span className="text-sm font-semibold text-accent-foreground">Buzz</span>
+        <span className="text-lg font-semibold text-accent-foreground">Buzz</span>
       </div>
     </div>
   );

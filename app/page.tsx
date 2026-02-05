@@ -43,15 +43,11 @@ export default function Home() {
           Master Morse code through interactive training, practice challenges, and competitive gameplay
         </p>
 
-        <Card className="max-w-3xl mx-auto mb-8">
-          <CardHeader>
-            <CardTitle>Try It Out</CardTitle>
-            <CardDescription>Learn Morse code with Beep and Buzz</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="max-w-4xl mx-auto mb-8 px-8 py-6 md:py-4 lg:py-2">
+          <div className="h-[32rem] md:h-[36rem] lg:h-64">
             <MorseTrainer />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <InlineSignUp className="mb-8" />
 
