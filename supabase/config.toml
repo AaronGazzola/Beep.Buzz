@@ -1,0 +1,29 @@
+[auth]
+enabled = true
+site_url = "https://beep.buzz"
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "https://beep.buzz/auth/callback", "http://localhost:3002/auth/callback", "http://localhost:3001/auth/callback"]
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirm your email - Beep.Buzz"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password - Beep.Buzz"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "You've been invited to Beep.Buzz"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.magic_link]
+subject = "Your magic link - Beep.Buzz"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your email change - Beep.Buzz"
+content_path = "./supabase/templates/email_change.html"

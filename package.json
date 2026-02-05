@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx supabase/seed.ts",
-    "db:reset-seed": "bash scripts/reset-seed.sh"
+    "db:reset-seed": "bash scripts/reset-seed.sh",
+    "email:build": "npx react-email export && cp out/*.html supabase/templates/"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
@@ -63,6 +64,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@react-email/components": "^1.0.7",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -70,6 +72,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "react-email": "^5.2.6",
     "tsx": "^4.21.0",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5"

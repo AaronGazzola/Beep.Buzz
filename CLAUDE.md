@@ -163,3 +163,43 @@ Push migrations using:
 `npx supabase db push`
 
 In order to query the database, create and run a custom typescript script. (Do not use `psql`)
+
+# Email Template Development
+
+## Previewing Email Templates
+
+This project uses React Email for email template development. All email templates
+are located in `emails/` and are written as React components.
+
+To preview and develop email templates:
+
+```bash
+npx react-email dev
+```
+
+This starts a development server (typically at http://localhost:3000) where you can:
+- Preview all email templates
+- Test responsive design by resizing the viewport
+- See changes in real-time with hot reload
+- View templates across different email clients
+
+## Template Structure
+
+Email templates use CSS variables from `app/globals.css` (light mode) for
+consistent styling with the application. Templates are compiled to HTML with
+inline styles for email client compatibility.
+
+All templates use:
+- **Font**: Plus Jakarta Sans (Google Font)
+- **Primary Color**: oklch(0.5393 0.2713 286.7462) for CTAs
+- **Border Radius**: 1.4rem
+- **Letter Spacing**: -0.025px
+- **Spacing Unit**: 0.27rem (multiply as needed)
+- **Container Shadow**: 0px 2px 3px 0px rgba(0, 0, 0, 0.16)
+
+## Deploying Template Changes
+
+After modifying templates in `emails/`:
+1. Compile to HTML: `npm run email:build`
+2. Templates are saved to `supabase/templates/`
+3. Push to Supabase: `npx supabase config push`

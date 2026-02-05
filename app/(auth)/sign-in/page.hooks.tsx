@@ -1,9 +1,10 @@
 import { supabase } from "@/supabase/browser-client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 export function useEmailSignIn() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
@@ -31,6 +32,7 @@ export function useEmailSignIn() {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
       router.push("/");
       router.refresh();
     },

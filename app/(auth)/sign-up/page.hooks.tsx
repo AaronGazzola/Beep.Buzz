@@ -1,9 +1,10 @@
 import { supabase } from "@/supabase/browser-client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 export function useEmailSignUp() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
@@ -32,6 +33,7 @@ export function useEmailSignUp() {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
       router.push("/verify");
     },
   });
@@ -39,6 +41,7 @@ export function useEmailSignUp() {
 
 export function useMagicLinkSignUp() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ email }: { email: string }) => {
@@ -57,6 +60,7 @@ export function useMagicLinkSignUp() {
       return { success: true };
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
       router.push("/verify");
     },
   });
