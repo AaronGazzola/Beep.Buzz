@@ -1,7 +1,7 @@
 [auth]
 enabled = true
 site_url = "https://beep.buzz"
-additional_redirect_urls = ["http://localhost:3000/auth/callback", "https://beep.buzz/auth/callback", "http://localhost:3002/auth/callback", "http://localhost:3001/auth/callback"]
+additional_redirect_urls = ["http://localhost:3000/**", "http://localhost:3001/**", "http://localhost:3002/**", "https://beep.buzz/**"]
 
 [auth.email]
 enable_signup = true
