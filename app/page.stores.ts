@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { ChallengeAttempt, Difficulty, GameMode, GamePhase, GameState, PracticeType } from "./page.types";
+import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType } from "./page.types";
 
 interface GameStore extends GameState {
-  setPhase: (phase: GamePhase) => void;
+  setStep: (step: TrainingStep) => void;
   setMode: (mode: GameMode) => void;
   setPracticeType: (practiceType: PracticeType) => void;
   setDifficulty: (difficulty: Difficulty) => void;
@@ -34,7 +34,7 @@ interface GameStore extends GameState {
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  phase: "idle",
+  step: "ready",
   mode: "training",
   practiceType: "text-to-morse",
   difficulty: "letter",
@@ -51,8 +51,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   sessionStartTime: null,
   challengeStartTime: null,
 
-  setPhase: (phase) => set({ phase }),
-  setMode: (mode) => set({ mode, phase: "idle", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
+  setStep: (step) => set({ step }),
+  setMode: (mode) => set({ mode, step: "ready", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
   setPracticeType: (practiceType) => set({ practiceType }),
   setDifficulty: (difficulty) => set({ difficulty }),
   setChallenge: (challenge, morse) =>
@@ -120,7 +120,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
   resetGame: () =>
     set({
-      phase: "idle",
+      step: "ready",
       currentChallenge: "",
       currentMorse: "",
       userInput: "",

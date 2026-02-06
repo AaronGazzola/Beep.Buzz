@@ -1,6 +1,6 @@
 export type Difficulty = "letter" | "word" | "sentence";
 
-export type GamePhase = "idle" | "presenting" | "responding" | "feedback";
+export type TrainingStep = "ready" | "demonstrate" | "your-turn" | "user-input" | "feedback";
 
 export type Speaker = "beep" | "buzz";
 
@@ -20,7 +20,7 @@ export interface ChallengeAttempt {
 }
 
 export interface GameState {
-  phase: GamePhase;
+  step: TrainingStep;
   mode: GameMode;
   practiceType: PracticeType;
   difficulty: Difficulty;

@@ -15,6 +15,7 @@ interface MorseCharactersProps {
 
 interface CharacterProps {
   isSpeaking: boolean;
+  isVocalizing?: boolean;
   className?: string;
 }
 
@@ -71,7 +72,7 @@ function useBlink() {
   return isBlinking;
 }
 
-function BeepCharacter({ isSpeaking, className }: CharacterProps) {
+function BeepCharacter({ isSpeaking, isVocalizing, className }: CharacterProps) {
   const [path, setPath] = useState("");
   const isBlinking = useBlink();
   const offsetsRef = useRef<{ phase: number; speed: number; amplitude: number }[]>([]);
@@ -173,12 +174,21 @@ function BeepCharacter({ isSpeaking, className }: CharacterProps) {
           strokeLinecap="round"
           className="stroke-white transition-all duration-75"
         />
+
+        {isVocalizing && (
+          <circle
+            cx="50"
+            cy="63"
+            r="2.5"
+            className="fill-white"
+          />
+        )}
       </g>
     </svg>
   );
 }
 
-function BuzzCharacter({ isSpeaking, className }: CharacterProps) {
+function BuzzCharacter({ isSpeaking, isVocalizing, className }: CharacterProps) {
   const [path, setPath] = useState("");
   const isBlinking = useBlink();
   const offsetsRef = useRef<
@@ -284,6 +294,15 @@ function BuzzCharacter({ isSpeaking, className }: CharacterProps) {
           strokeLinecap="round"
           className="stroke-white transition-all duration-75"
         />
+
+        {isVocalizing && (
+          <circle
+            cx="50"
+            cy="63"
+            r="2.5"
+            className="fill-white"
+          />
+        )}
       </g>
     </svg>
   );
@@ -295,12 +314,16 @@ function SpeechBubble({
   showMorse,
   action,
   buttons,
+  fillColor,
+  textColor,
 }: {
   speaker: Speaker;
   message: string | ReactNode;
   showMorse?: string;
   action?: ReactNode;
   buttons?: ReactNode;
+  fillColor?: string;
+  textColor?: string;
 }) {
   const [bubblePath, setBubblePath] = useState("");
   const cornerOffsetsRef = useRef<{ phase: number; speed: number }[]>([]);
@@ -318,10 +341,10 @@ function SpeechBubble({
     (time: number, isMobile: boolean) => {
       const left = isMobile ? 20 : 60;
       const right = isMobile ? 380 : 340;
-      const top = 2;
-      const bottom = isMobile ? 298 : 198;
+      const top = isMobile ? 12 : 2;
+      const bottom = isMobile ? 328 : 198;
       const cornerRadius = speaker === "beep" ? 25 : 0;
-      const centerY = isMobile ? 150 : 75;
+      const centerY = isMobile ? 170 : 75;
       const centerX = 200;
       const pointerHeight = 40;
       const pointerWidth = 40;
@@ -346,7 +369,7 @@ function SpeechBubble({
           const [tl, tr, br, bl] = corners;
           const pointerLeftX = centerX - pointerWidth / 2;
           const pointerRightX = centerX + pointerWidth / 2;
-          const tipY = -15 + pointerVariation;
+          const tipY = -8 + pointerVariation;
 
           return `
             M ${tl.x + cornerRadius} ${tl.y}
@@ -367,7 +390,7 @@ function SpeechBubble({
           const [tl, tr, br, bl] = corners;
           const pointerLeftX = centerX - pointerWidth / 2;
           const pointerRightX = centerX + pointerWidth / 2;
-          const tipY = 215 + pointerVariation;
+          const tipY = 348 + pointerVariation;
 
           return `
             M ${tl.x} ${tl.y}
@@ -441,31 +464,31 @@ function SpeechBubble({
   });
 
   const strokeColor = speaker === "beep" ? "stroke-chart-3" : "stroke-accent-foreground";
-  const fillColor = "fill-background";
+  const bubbleFillColor = fillColor || "fill-background";
 
   return (
     <div className="relative w-full h-full overflow-visible">
       <svg
-        viewBox={isMobile ? "0 0 400 300" : "0 0 400 200"}
+        viewBox={isMobile ? "0 0 400 340" : "0 0 400 200"}
         className="w-full h-full overflow-visible"
         preserveAspectRatio="xMidYMid meet"
         style={{ overflow: "visible" }}
       >
         <path
           d={bubblePath}
-          className={cn(fillColor, strokeColor)}
+          className={cn(bubbleFillColor, strokeColor)}
           strokeWidth="4"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center z-10 text-center px-12">
+      <div className={cn("absolute inset-0 flex items-center justify-center z-10 text-center px-12", textColor)}>
         <div className="max-w-[280px]">
-          <div className="text-2xl font-medium text-foreground leading-relaxed">
+          <div className="text-2xl font-medium leading-relaxed">
             {message}
           </div>
           {showMorse && (
-            <p className="text-lg font-mono text-muted-foreground break-all mt-2">
+            <p className="text-lg font-mono break-all mt-2 opacity-90">
               {showMorse}
             </p>
           )}
