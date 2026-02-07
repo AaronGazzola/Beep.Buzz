@@ -3,26 +3,16 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Zap, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { MorseTrainer } from "@/components/MorseTrainer";
 import { InlineSignUp } from "@/components/InlineSignUp";
+import { LearnedLetters } from "@/components/LearnedLetters";
+import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
 
 export default function Home() {
+  useLearnedLetters();
+  useLearnedLettersSync();
   const modes = [
-    {
-      icon: BookOpen,
-      title: "Training Mode",
-      description: "Guided lessons with Beep and Buzz to learn Morse code fundamentals",
-      href: "/training",
-      color: "text-blue-500",
-    },
-    {
-      icon: Zap,
-      title: "Practice Mode",
-      description: "Self-paced challenges to sharpen your translation skills",
-      href: "/practice",
-      color: "text-yellow-500",
-    },
     {
       icon: Trophy,
       title: "Compete",
@@ -48,6 +38,8 @@ export default function Home() {
             <MorseTrainer />
           </div>
         </div>
+
+        <LearnedLetters className="mb-8" />
 
         <InlineSignUp className="mb-8" />
 

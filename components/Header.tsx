@@ -31,10 +31,7 @@ export function Header() {
   };
 
   const navLinks = [
-    { href: "/training", label: "Training" },
-    { href: "/practice", label: "Practice" },
     { href: "/compete", label: "Compete" },
-    { href: "/leaderboard", label: "Leaderboard" },
   ];
 
   return (

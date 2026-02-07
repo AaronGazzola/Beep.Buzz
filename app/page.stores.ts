@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType } from "./page.types";
+import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter } from "./page.types";
 
 interface GameStore extends GameState {
   setStep: (step: TrainingStep) => void;
@@ -31,25 +31,34 @@ interface GameStore extends GameState {
     attempts: ChallengeAttempt[];
   };
   resetGame: () => void;
+  addLearnedLetter: (letter: string) => void;
+  incrementPracticeCount: (letter: string) => void;
+  setLearnedLetters: (letters: LearnedLetter[]) => void;
+  setQuizMode: (mode: QuizMode) => void;
+  setTrainerMode: (mode: TrainerMode) => void;
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
-  step: "ready",
-  mode: "training",
-  practiceType: "text-to-morse",
-  difficulty: "letter",
-  currentChallenge: "",
-  currentMorse: "",
-  userInput: "",
-  userTextInput: "",
-  isCorrect: null,
-  isPlaying: false,
-  score: 0,
-  streak: 0,
-  maxStreak: 0,
-  attempts: [],
-  sessionStartTime: null,
-  challengeStartTime: null,
+export const useGameStore = create<GameStore>()((set, get) => ({
+      step: "ready",
+      mode: "training",
+      practiceType: "text-to-morse",
+      difficulty: "letter",
+      currentChallenge: "",
+      currentMorse: "",
+      userInput: "",
+      userTextInput: "",
+      isCorrect: null,
+      isPlaying: false,
+      score: 0,
+      streak: 0,
+      maxStreak: 0,
+      attempts: [],
+      sessionStartTime: null,
+      challengeStartTime: null,
+      learnedLetters: [],
+      quizMode: null,
+      lastLearnedLetter: null,
+      trainerMode: "mixed",
 
   setStep: (step) => set({ step }),
   setMode: (mode) => set({ mode, step: "ready", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
@@ -133,5 +142,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
       attempts: [],
       sessionStartTime: null,
       challengeStartTime: null,
+      quizMode: null,
     }),
+  addLearnedLetter: (letter) =>
+    set((state) => {
+      const upperLetter = letter.toUpperCase();
+      const exists = state.learnedLetters.some((l) => l.letter === upperLetter);
+      if (exists) {
+        return { lastLearnedLetter: upperLetter };
+      }
+      return {
+        learnedLetters: [...state.learnedLetters, { letter: upperLetter, practiceCount: 0 }],
+        lastLearnedLetter: upperLetter,
+      };
+    }),
+  incrementPracticeCount: (letter) =>
+    set((state) => {
+      const upperLetter = letter.toUpperCase();
+      return {
+        learnedLetters: state.learnedLetters.map((l) =>
+          l.letter === upperLetter ? { ...l, practiceCount: l.practiceCount + 1 } : l
+        ),
+      };
+    }),
+  setLearnedLetters: (letters) => set({ learnedLetters: letters }),
+  setQuizMode: (mode) => set({ quizMode: mode }),
+  setTrainerMode: (mode) => set({ trainerMode: mode }),
 }));

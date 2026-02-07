@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { RotateCcw, X, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useGameStore } from "@/app/page.stores";
 import {
   textToMorse,
@@ -15,6 +16,7 @@ import type { Speaker } from "./MorseCharacters";
 
 const DOT_THRESHOLD = 200;
 const DEMO_WPM = 8;
+const QUIZ_CHANCE = 1 / 3;
 
 export function MorseTrainer({ className }: { className?: string }) {
   const {
@@ -22,18 +24,28 @@ export function MorseTrainer({ className }: { className?: string }) {
     currentChallenge,
     currentMorse,
     userInput,
+    userTextInput,
     isCorrect,
     isPlaying,
+    learnedLetters,
+    quizMode,
+    lastLearnedLetter,
+    trainerMode,
     setStep,
     setChallenge,
     appendToUserInput,
     clearUserInput,
+    setUserTextInput,
+    clearUserTextInput,
     setIsCorrect,
     setIsPlaying,
     incrementScore,
     incrementStreak,
     resetStreak,
     recordAttempt,
+    addLearnedLetter,
+    incrementPracticeCount,
+    setQuizMode,
   } = useGameStore();
 
   const [displayedMorse, setDisplayedMorse] = useState("");
@@ -44,17 +56,49 @@ export function MorseTrainer({ className }: { className?: string }) {
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
 
   const currentSpeaker: Speaker = step === "user-input" ? "beep" : "buzz";
 
   const startNewChallenge = useCallback(() => {
-    const challenge = generateRandomCharacter();
-    const morse = textToMorse(challenge);
-    setChallenge(challenge, morse);
     clearUserInput();
+    clearUserTextInput();
     setIsCorrect(null);
-    setStep("demonstrate");
-  }, [setChallenge, clearUserInput, setIsCorrect, setStep]);
+
+    const eligibleForQuiz = learnedLetters.filter((l) => l.letter !== lastLearnedLetter);
+    const hasEligibleLetters = eligibleForQuiz.length > 0;
+
+    let shouldQuiz = false;
+    if (trainerMode === "practice") {
+      if (!hasEligibleLetters) {
+        setStep("ready");
+        return;
+      }
+      shouldQuiz = true;
+    } else if (trainerMode === "learn") {
+      shouldQuiz = false;
+    } else {
+      shouldQuiz = hasEligibleLetters && Math.random() < QUIZ_CHANCE;
+    }
+
+    if (shouldQuiz) {
+      const minPracticeCount = Math.min(...eligibleForQuiz.map((l) => l.practiceCount));
+      const leastPracticed = eligibleForQuiz.filter((l) => l.practiceCount === minPracticeCount);
+      const selected = leastPracticed[Math.floor(Math.random() * leastPracticed.length)];
+      const morse = textToMorse(selected.letter);
+      setChallenge(selected.letter, morse);
+
+      const quizType = Math.random() < 0.5 ? "letter-to-morse" : "morse-to-letter";
+      setQuizMode(quizType);
+      setStep("demonstrate");
+    } else {
+      const challenge = generateRandomCharacter();
+      const morse = textToMorse(challenge);
+      setChallenge(challenge, morse);
+      setQuizMode(null);
+      setStep("demonstrate");
+    }
+  }, [setChallenge, clearUserInput, clearUserTextInput, setIsCorrect, setStep, learnedLetters, lastLearnedLetter, setQuizMode, trainerMode]);
 
   const playMorseWithAnimation = useCallback(async () => {
     if (isPlaying || !currentMorse) return;
@@ -75,6 +119,8 @@ export function MorseTrainer({ className }: { className?: string }) {
     const symbols = currentMorse.split("");
     let displayIndex = 0;
 
+    const shouldShowMorse = quizMode !== "morse-to-letter";
+
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];
 
@@ -83,7 +129,9 @@ export function MorseTrainer({ className }: { className?: string }) {
         const beepDuration = symbol === "." ? dotDuration : dashDuration;
 
         timeouts.push(setTimeout(() => {
-          setDisplayedMorse(currentMorse.slice(0, charIndex + 1));
+          if (shouldShowMorse) {
+            setDisplayedMorse(currentMorse.slice(0, charIndex + 1));
+          }
           setIsVocalizing(true);
         }, currentTime));
 
@@ -100,7 +148,9 @@ export function MorseTrainer({ className }: { className?: string }) {
       } else if (symbol === " ") {
         const charIndex = displayIndex;
         timeouts.push(setTimeout(() => {
-          setDisplayedMorse(currentMorse.slice(0, charIndex + 1));
+          if (shouldShowMorse) {
+            setDisplayedMorse(currentMorse.slice(0, charIndex + 1));
+          }
         }, currentTime));
         currentTime += letterGap;
         displayIndex++;
@@ -114,13 +164,13 @@ export function MorseTrainer({ className }: { className?: string }) {
       setIsVocalizing(false);
       timeouts.forEach(clearTimeout);
     }
-  }, [isPlaying, currentMorse, setIsPlaying]);
+  }, [isPlaying, currentMorse, setIsPlaying, quizMode]);
 
   useEffect(() => {
-    if (step === "demonstrate" && currentMorse) {
+    if (step === "demonstrate" && currentMorse && quizMode !== "letter-to-morse") {
       playMorseWithAnimation();
     }
-  }, [step, currentMorse]);
+  }, [step, currentMorse, quizMode]);
 
   useEffect(() => {
     if (step === "your-turn") {
@@ -132,6 +182,12 @@ export function MorseTrainer({ className }: { className?: string }) {
   }, [step, setStep]);
 
   useEffect(() => {
+    if (step === "user-input" && quizMode === "morse-to-letter" && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [step, quizMode]);
+
+  useEffect(() => {
     if (step === "feedback") {
       const timer = setTimeout(() => {
         startNewChallenge();
@@ -141,7 +197,7 @@ export function MorseTrainer({ className }: { className?: string }) {
   }, [step, startNewChallenge]);
 
   useEffect(() => {
-    if (step === "user-input" && userInput && userInput === currentMorse) {
+    if (step === "user-input" && quizMode !== "morse-to-letter" && userInput && userInput === currentMorse) {
       recordAttempt({
         challengeText: currentChallenge,
         expectedMorse: currentMorse,
@@ -152,9 +208,14 @@ export function MorseTrainer({ className }: { className?: string }) {
       incrementScore();
       incrementStreak();
       setIsCorrect(true);
+      if (quizMode) {
+        incrementPracticeCount(currentChallenge);
+      } else {
+        addLearnedLetter(currentChallenge);
+      }
       setStep("feedback");
     }
-  }, [step, userInput, currentMorse, recordAttempt, currentChallenge, incrementScore, incrementStreak, setIsCorrect, setStep]);
+  }, [step, userInput, currentMorse, recordAttempt, currentChallenge, incrementScore, incrementStreak, setIsCorrect, setStep, quizMode, addLearnedLetter, incrementPracticeCount]);
 
   const startBeep = useCallback(() => {
     if (!audioContextRef.current) {
@@ -200,15 +261,17 @@ export function MorseTrainer({ className }: { className?: string }) {
 
   const handlePressStart = useCallback(() => {
     if (step !== "user-input") return;
+    if (quizMode === "morse-to-letter") return;
     if (pressStartRef.current !== null) return;
 
     pressStartRef.current = Date.now();
     setIsVocalizing(true);
     startBeep();
-  }, [step, startBeep]);
+  }, [step, startBeep, quizMode]);
 
   const handlePressEnd = useCallback(() => {
     if (step !== "user-input" || pressStartRef.current === null) return;
+    if (quizMode === "morse-to-letter") return;
 
     stopBeep();
     setIsVocalizing(false);
@@ -218,11 +281,36 @@ export function MorseTrainer({ className }: { className?: string }) {
 
     appendToUserInput(signal);
     pressStartRef.current = null;
-  }, [step, appendToUserInput, stopBeep]);
+  }, [step, appendToUserInput, stopBeep, quizMode]);
 
   useEffect(() => {
+    const isInputFocused = () => {
+      const active = document.activeElement;
+      return active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement ||
+        active?.getAttribute("contenteditable") === "true";
+    };
+
+    const isModifierKey = (e: KeyboardEvent) => {
+      return e.key === "Meta" ||
+        e.key === "Control" ||
+        e.key === "Alt" ||
+        e.key === "Shift" ||
+        e.key === "CapsLock" ||
+        e.key === "Escape" ||
+        e.key === "Tab";
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
+      if (isInputFocused()) return;
+      if (isModifierKey(e)) return;
+
+      if (quizMode === "morse-to-letter" && step === "user-input") {
+        return;
+      }
+
       if (step === "ready") {
         e.preventDefault();
         startNewChallenge();
@@ -236,6 +324,13 @@ export function MorseTrainer({ className }: { className?: string }) {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      if (isInputFocused()) return;
+      if (isModifierKey(e)) return;
+
+      if (quizMode === "morse-to-letter" && step === "user-input") {
+        return;
+      }
+
       if (step === "user-input") {
         e.preventDefault();
         handlePressEnd();
@@ -249,11 +344,11 @@ export function MorseTrainer({ className }: { className?: string }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [step, handlePressStart, handlePressEnd, startNewChallenge, setStep]);
+  }, [step, handlePressStart, handlePressEnd, startNewChallenge, setStep, quizMode]);
 
   const handleMainClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('button')) return;
+    if (target.closest('button') || target.closest('input')) return;
 
     if (step === "ready") {
       startNewChallenge();
@@ -275,12 +370,64 @@ export function MorseTrainer({ className }: { className?: string }) {
   const handleResetToDemonstrate = (e: React.MouseEvent) => {
     e.stopPropagation();
     clearUserInput();
+    clearUserTextInput();
     setStep("demonstrate");
   };
 
   const handleClearInput = (e: React.MouseEvent) => {
     e.stopPropagation();
     clearUserInput();
+    clearUserTextInput();
+  };
+
+  const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase().slice(0, 1);
+    setUserTextInput(value);
+
+    if (value && value === currentChallenge.toUpperCase()) {
+      recordAttempt({
+        challengeText: currentChallenge,
+        expectedMorse: currentMorse,
+        userInput: value,
+        isCorrect: true,
+        challengeType: "letter",
+      });
+      incrementScore();
+      incrementStreak();
+      setIsCorrect(true);
+      incrementPracticeCount(currentChallenge);
+      setStep("feedback");
+    }
+  };
+
+  const handleTextInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && userTextInput) {
+      e.preventDefault();
+      handleTextSubmit();
+    }
+  };
+
+  const handleTextSubmit = () => {
+    const correct = userTextInput.toUpperCase() === currentChallenge.toUpperCase();
+
+    recordAttempt({
+      challengeText: currentChallenge,
+      expectedMorse: currentMorse,
+      userInput: userTextInput,
+      isCorrect: correct,
+      challengeType: "letter",
+    });
+
+    if (correct) {
+      incrementScore();
+      incrementStreak();
+      incrementPracticeCount(currentChallenge);
+    } else {
+      resetStreak();
+    }
+
+    setIsCorrect(correct);
+    setStep("feedback");
   };
 
   const handleDone = (e: React.MouseEvent) => {
@@ -299,6 +446,11 @@ export function MorseTrainer({ className }: { className?: string }) {
     if (correct) {
       incrementScore();
       incrementStreak();
+      if (quizMode) {
+        incrementPracticeCount(currentChallenge);
+      } else {
+        addLearnedLetter(currentChallenge);
+      }
     } else {
       resetStreak();
     }
@@ -314,6 +466,15 @@ export function MorseTrainer({ className }: { className?: string }) {
 
   const getMessage = () => {
     if (step === "ready") {
+      if (trainerMode === "practice" && learnedLetters.length === 0) {
+        return (
+          <>
+            No letters learned yet!
+            <br />
+            <span className="text-xl font-semibold text-accent-foreground">Switch to Learn mode first</span>
+          </>
+        );
+      }
       return (
         <>
           Ready to learn Morse code?
@@ -324,6 +485,26 @@ export function MorseTrainer({ className }: { className?: string }) {
     }
 
     if (step === "demonstrate") {
+      if (quizMode === "morse-to-letter") {
+        return (
+          <>
+            <div className="text-base font-semibold mb-3 opacity-90">What letter is this?</div>
+            <div className="text-4xl mb-3 font-bold">?</div>
+            <div className="text-base opacity-90">Click or press any key when ready</div>
+          </>
+        );
+      }
+
+      if (quizMode === "letter-to-morse") {
+        return (
+          <>
+            <div className="text-base font-semibold mb-3 opacity-90">Tap the morse for this letter</div>
+            <div className="text-4xl mb-3 font-bold">{currentChallenge}</div>
+            <div className="text-base opacity-90">Click or press any key when ready</div>
+          </>
+        );
+      }
+
       return (
         <>
           <div className="text-base font-semibold mb-3 opacity-90">Click or hit any key to continue</div>
@@ -334,10 +515,40 @@ export function MorseTrainer({ className }: { className?: string }) {
     }
 
     if (step === "your-turn") {
+      if (quizMode === "morse-to-letter") return "What letter was that?";
+      if (quizMode === "letter-to-morse") return "Tap the morse!";
       return "Now it's your turn!";
     }
 
     if (step === "user-input") {
+      if (quizMode === "morse-to-letter") {
+        return (
+          <>
+            <div className="text-base font-semibold mb-3 opacity-90">Type the letter you heard</div>
+            <Input
+              ref={textInputRef}
+              type="text"
+              value={userTextInput}
+              onChange={handleTextInputChange}
+              onKeyDown={handleTextInputKeyDown}
+              onClick={(e) => e.stopPropagation()}
+              className="w-20 h-16 text-4xl text-center font-bold uppercase mx-auto"
+              maxLength={1}
+            />
+          </>
+        );
+      }
+
+      if (quizMode === "letter-to-morse") {
+        return (
+          <>
+            <div className="text-base font-semibold mb-3 opacity-90">What&apos;s the morse for this letter?</div>
+            <div className="text-4xl mb-3 font-bold">{currentChallenge}</div>
+            <div className="text-5xl font-mono min-h-[3rem]">{userInput || "\u00A0"}</div>
+          </>
+        );
+      }
+
       return (
         <>
           <div className="text-base font-semibold mb-3 opacity-90">Click or hit any key to tap morse</div>
@@ -357,7 +568,7 @@ export function MorseTrainer({ className }: { className?: string }) {
           <div className="text-5xl font-mono">{currentMorse}</div>
           {!isCorrect && (
             <div className="text-base opacity-70 mt-2">
-              You entered: {userInput || "(nothing)"}
+              You entered: {quizMode === "morse-to-letter" ? userTextInput || "(nothing)" : userInput || "(nothing)"}
             </div>
           )}
           <div className="mt-6 h-9" />
@@ -380,6 +591,19 @@ export function MorseTrainer({ className }: { className?: string }) {
     }
 
     if (step === "user-input") {
+      if (quizMode === "morse-to-letter") {
+        return (
+          <div className="flex gap-2 justify-center mt-6">
+            <Button variant="ghost" size="sm" onClick={handleResetToDemonstrate}>
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSkip}>
+              <SkipForward className="w-4 h-4" />
+            </Button>
+          </div>
+        );
+      }
+
       return (
         <div className="flex gap-2 justify-center mt-6">
           <Button variant="ghost" size="sm" onClick={handleResetToDemonstrate}>
@@ -415,7 +639,7 @@ export function MorseTrainer({ className }: { className?: string }) {
     return undefined;
   };
 
-  const shouldBeClickable = step === "ready" || step === "demonstrate" || step === "user-input";
+  const shouldBeClickable = step === "ready" || step === "demonstrate" || (step === "user-input" && quizMode !== "morse-to-letter");
 
   return (
     <div
@@ -426,9 +650,9 @@ export function MorseTrainer({ className }: { className?: string }) {
         className
       )}
       onClick={handleMainClick}
-      onMouseDown={step === "user-input" ? (e) => { if (!(e.target as HTMLElement).closest('button')) { e.preventDefault(); handlePressStart(); } } : undefined}
-      onMouseUp={step === "user-input" ? (e) => { if (!(e.target as HTMLElement).closest('button')) { e.preventDefault(); handlePressEnd(); } } : undefined}
-      onMouseLeave={step === "user-input" ? () => { if (pressStartRef.current !== null) handlePressEnd(); } : undefined}
+      onMouseDown={step === "user-input" && quizMode !== "morse-to-letter" ? (e) => { if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('input')) { e.preventDefault(); handlePressStart(); } } : undefined}
+      onMouseUp={step === "user-input" && quizMode !== "morse-to-letter" ? (e) => { if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('input')) { e.preventDefault(); handlePressEnd(); } } : undefined}
+      onMouseLeave={step === "user-input" && quizMode !== "morse-to-letter" ? () => { if (pressStartRef.current !== null) handlePressEnd(); } : undefined}
     >
       <div className="flex flex-col items-center gap-1 lg:order-1">
         <div className="w-24 h-24 md:w-32 md:h-32">

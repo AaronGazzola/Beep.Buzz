@@ -8,6 +8,15 @@ export type GameMode = "training" | "practice";
 
 export type PracticeType = "text-to-morse" | "morse-to-text";
 
+export type QuizMode = "letter-to-morse" | "morse-to-letter" | null;
+
+export type TrainerMode = "learn" | "practice" | "mixed";
+
+export interface LearnedLetter {
+  letter: string;
+  practiceCount: number;
+}
+
 export interface ChallengeAttempt {
   challengeText: string;
   expectedMorse: string;
@@ -36,6 +45,10 @@ export interface GameState {
   attempts: ChallengeAttempt[];
   sessionStartTime: number | null;
   challengeStartTime: number | null;
+  learnedLetters: LearnedLetter[];
+  quizMode: QuizMode;
+  lastLearnedLetter: string | null;
+  trainerMode: TrainerMode;
 }
 
 export interface MorseInputState {

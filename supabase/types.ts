@@ -44,6 +44,56 @@ export type Database = {
         }
         Relationships: []
       }
+      challenge_attempts: {
+        Row: {
+          attempt_number: number
+          challenge_text: string
+          challenge_type: Database["public"]["Enums"]["challenge_type"]
+          created_at: string
+          expected_morse: string
+          id: string
+          is_correct: boolean
+          response_time_ms: number | null
+          session_id: string
+          user_id: string
+          user_input: string
+        }
+        Insert: {
+          attempt_number: number
+          challenge_text: string
+          challenge_type: Database["public"]["Enums"]["challenge_type"]
+          created_at?: string
+          expected_morse: string
+          id?: string
+          is_correct: boolean
+          response_time_ms?: number | null
+          session_id: string
+          user_id: string
+          user_input: string
+        }
+        Update: {
+          attempt_number?: number
+          challenge_text?: string
+          challenge_type?: Database["public"]["Enums"]["challenge_type"]
+          created_at?: string
+          expected_morse?: string
+          id?: string
+          is_correct?: boolean
+          response_time_ms?: number | null
+          session_id?: string
+          user_id?: string
+          user_input?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_attempts_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -70,6 +120,57 @@ export type Database = {
           message?: string
           status?: Database["public"]["Enums"]["message_status"]
           subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      game_sessions: {
+        Row: {
+          correct_challenges: number
+          created_at: string
+          difficulty: Database["public"]["Enums"]["challenge_type"]
+          ended_at: string | null
+          final_score: number
+          id: string
+          max_streak: number
+          mode: Database["public"]["Enums"]["game_mode"]
+          practice_direction:
+            | Database["public"]["Enums"]["practice_direction"]
+            | null
+          started_at: string
+          total_challenges: number
+          user_id: string
+        }
+        Insert: {
+          correct_challenges?: number
+          created_at?: string
+          difficulty: Database["public"]["Enums"]["challenge_type"]
+          ended_at?: string | null
+          final_score?: number
+          id?: string
+          max_streak?: number
+          mode: Database["public"]["Enums"]["game_mode"]
+          practice_direction?:
+            | Database["public"]["Enums"]["practice_direction"]
+            | null
+          started_at?: string
+          total_challenges?: number
+          user_id: string
+        }
+        Update: {
+          correct_challenges?: number
+          created_at?: string
+          difficulty?: Database["public"]["Enums"]["challenge_type"]
+          ended_at?: string | null
+          final_score?: number
+          id?: string
+          max_streak?: number
+          mode?: Database["public"]["Enums"]["game_mode"]
+          practice_direction?:
+            | Database["public"]["Enums"]["practice_direction"]
+            | null
+          started_at?: string
+          total_challenges?: number
           user_id?: string
         }
         Relationships: []
@@ -221,6 +322,7 @@ export type Database = {
           created_at: string
           experience_points: number
           id: string
+          learned_letters: Json | null
           level: number
           notification_preferences: Json
           role: Database["public"]["Enums"]["user_role"]
@@ -234,6 +336,7 @@ export type Database = {
           created_at?: string
           experience_points?: number
           id?: string
+          learned_letters?: Json | null
           level?: number
           notification_preferences?: Json
           role?: Database["public"]["Enums"]["user_role"]
@@ -247,6 +350,7 @@ export type Database = {
           created_at?: string
           experience_points?: number
           id?: string
+          learned_letters?: Json | null
           level?: number
           notification_preferences?: Json
           role?: Database["public"]["Enums"]["user_role"]
@@ -326,9 +430,12 @@ export type Database = {
     }
     Enums: {
       achievement_type: "skill" | "progress" | "special"
+      challenge_type: "letter" | "word" | "sentence"
       difficulty_level: "beginner" | "intermediate" | "advanced"
+      game_mode: "training" | "practice"
       match_status: "pending" | "active" | "completed" | "cancelled"
       message_status: "pending" | "reviewed" | "resolved"
+      practice_direction: "text_to_morse" | "morse_to_text"
       practice_type: "translation" | "morse_input"
       ranking_category: "accuracy" | "speed" | "wins" | "experience"
       user_role: "user" | "admin" | "super-admin"
@@ -460,9 +567,12 @@ export const Constants = {
   public: {
     Enums: {
       achievement_type: ["skill", "progress", "special"],
+      challenge_type: ["letter", "word", "sentence"],
       difficulty_level: ["beginner", "intermediate", "advanced"],
+      game_mode: ["training", "practice"],
       match_status: ["pending", "active", "completed", "cancelled"],
       message_status: ["pending", "reviewed", "resolved"],
+      practice_direction: ["text_to_morse", "morse_to_text"],
       practice_type: ["translation", "morse_input"],
       ranking_category: ["accuracy", "speed", "wins", "experience"],
       user_role: ["user", "admin", "super-admin"],
