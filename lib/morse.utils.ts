@@ -188,8 +188,13 @@ export function generateRandomWord(
   return words[Math.floor(Math.random() * words.length)];
 }
 
-export function generateRandomCharacter(): string {
-  const chars = Object.keys(MORSE_ALPHABET).filter((char) => char !== " ");
+export function generateRandomCharacter(excludeChars: string[] = []): string {
+  const chars = Object.keys(MORSE_ALPHABET).filter(
+    (char) => char !== " " && !excludeChars.includes(char)
+  );
+  if (chars.length === 0) {
+    return Object.keys(MORSE_ALPHABET).filter((char) => char !== " ")[0];
+  }
   return chars[Math.floor(Math.random() * chars.length)];
 }
 

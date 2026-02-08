@@ -1,26 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy } from "lucide-react";
 import { MorseTrainer } from "@/components/MorseTrainer";
 import { InlineSignUp } from "@/components/InlineSignUp";
 import { LearnedLetters } from "@/components/LearnedLetters";
 import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
+import { useAuthStore } from "./layout.stores";
 
 export default function Home() {
-  useLearnedLetters();
+  const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
-  const modes = [
-    {
-      icon: Trophy,
-      title: "Compete",
-      description: "Real-time matches against other players to test your mastery",
-      href: "/compete",
-      color: "text-purple-500",
-    },
-  ];
+  const { isAuthenticated } = useAuthStore();
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -39,43 +28,9 @@ export default function Home() {
           </div>
         </div>
 
-        <LearnedLetters className="mb-8" />
+        <LearnedLetters className="mb-8" isLoading={learnedLettersQuery.isPending} />
 
-        <InlineSignUp className="mb-8" />
-
-        <div className="flex gap-4 justify-center">
-          <Button asChild size="lg">
-            <Link href="/sign-up">Get Started</Link>
-          </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="/about">Learn More</Link>
-          </Button>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-3xl font-bold text-center mb-8">Choose Your Learning Path</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {modes.map((mode) => {
-            const Icon = mode.icon;
-            return (
-              <Link key={mode.href} href={mode.href}>
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <Icon className={`h-12 w-12 mb-2 ${mode.color}`} />
-                    <CardTitle>{mode.title}</CardTitle>
-                    <CardDescription>{mode.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button variant="ghost" className="w-full">
-                      Start Learning →
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+        {!isAuthenticated && <InlineSignUp className="mb-8" />}
       </section>
     </div>
   );

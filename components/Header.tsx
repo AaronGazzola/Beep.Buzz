@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Settings, LogOut, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 
 export function Header() {
@@ -30,9 +30,7 @@ export function Header() {
     return user.email.charAt(0).toUpperCase();
   };
 
-  const navLinks = [
-    { href: "/compete", label: "Compete" },
-  ];
+  const navLinks: { href: string; label: string }[] = [];
 
   return (
     <header className="border-b bg-background sticky top-0 z-50">
@@ -80,22 +78,6 @@ export function Header() {
                       </p>
                     </div>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={`/profile/${user?.id}`}
-                      className="cursor-pointer"
-                    >
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}

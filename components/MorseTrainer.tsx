@@ -92,7 +92,8 @@ export function MorseTrainer({ className }: { className?: string }) {
       setQuizMode(quizType);
       setStep("demonstrate");
     } else {
-      const challenge = generateRandomCharacter();
+      const learnedChars = learnedLetters.map((l) => l.letter);
+      const challenge = generateRandomCharacter(learnedChars);
       const morse = textToMorse(challenge);
       setChallenge(challenge, morse);
       setQuizMode(null);
@@ -525,16 +526,19 @@ export function MorseTrainer({ className }: { className?: string }) {
         return (
           <>
             <div className="text-base font-semibold mb-3 opacity-90">Type the letter you heard</div>
-            <Input
-              ref={textInputRef}
-              type="text"
-              value={userTextInput}
-              onChange={handleTextInputChange}
-              onKeyDown={handleTextInputKeyDown}
-              onClick={(e) => e.stopPropagation()}
-              className="w-20 h-16 text-4xl text-center font-bold uppercase mx-auto"
-              maxLength={1}
-            />
+            <div className="text-4xl mb-3 font-bold">
+              <Input
+                ref={textInputRef}
+                type="text"
+                value={userTextInput}
+                onChange={handleTextInputChange}
+                onKeyDown={handleTextInputKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                className="!text-[2.25rem] !leading-[2.5rem] font-bold uppercase text-center bg-transparent border-none shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-4 py-2 h-auto w-[3ch] mx-auto"
+                style={{ fontSize: '2.25rem', lineHeight: '2.5rem' }}
+                maxLength={1}
+              />
+            </div>
           </>
         );
       }

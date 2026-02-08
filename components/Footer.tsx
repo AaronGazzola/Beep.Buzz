@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer className="border-t bg-background mt-auto">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <h3 className="font-bold text-lg mb-4">Beep.Buzz</h3>
             <p className="text-sm text-muted-foreground">
@@ -16,52 +16,14 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Learn</h4>
+            <h4 className="font-semibold mb-4">About</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link
-                  href="/training"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Training Mode
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/practice"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Practice Mode
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/compete"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Compete
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Community</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link
-                  href="/leaderboard"
-                  className="hover:text-foreground transition-colors"
-                >
-                  Leaderboard
-                </Link>
-              </li>
               <li>
                 <Link
                   href="/about"
                   className="hover:text-foreground transition-colors"
                 >
-                  About
+                  About Us
                 </Link>
               </li>
               <li>

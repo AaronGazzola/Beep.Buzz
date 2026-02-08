@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEmailSignUp, useMagicLinkSignUp } from "./page.hooks";
+import { useAuthStore } from "@/app/layout.stores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +20,8 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, Mail, Check, Eye, EyeOff } from "lucide-react";
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +30,12 @@ export default function SignUpPage() {
   const sendMagicLink = useMagicLinkSignUp();
 
   const passwordStrong = password.length >= 8;
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

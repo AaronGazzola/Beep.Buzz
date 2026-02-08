@@ -29,7 +29,7 @@ function useInlineSignUp() {
       console.log("[InlineSignUp] Starting sign up for:", email);
       console.log(
         "[InlineSignUp] Redirect URL:",
-        `${window.location.origin}/welcome`,
+        `${window.location.origin}/`,
       );
       console.log("[InlineSignUp] Learned letters to save:", learnedLetters);
 
@@ -37,7 +37,7 @@ function useInlineSignUp() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/welcome`,
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             pending_learned_letters:
               learnedLetters.length > 0 ? learnedLetters : undefined,
