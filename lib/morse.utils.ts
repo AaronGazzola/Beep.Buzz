@@ -107,9 +107,14 @@ export function textToMorse(text: string): string {
 
 export function morseToText(morse: string): string {
   return morse
-    .split(" ")
-    .map((code) => MORSE_TO_TEXT[code] || "")
-    .join("");
+    .split(" / ")
+    .map((word) =>
+      word
+        .split(" ")
+        .map((code) => MORSE_TO_TEXT[code] || "")
+        .join("")
+    )
+    .join(" ");
 }
 
 export function validateMorse(morse: string): boolean {

@@ -6,27 +6,31 @@ import type { LearnedLetter } from "./page.types";
 export async function getLearnedLettersAction(): Promise<LearnedLetter[]> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  if (authError || !user) {
+    if (authError || !user) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("learned_letters")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error) {
+      console.error(error);
+      return [];
+    }
+
+    return (data?.learned_letters as unknown as LearnedLetter[]) || [];
+  } catch (error) {
     return [];
   }
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("learned_letters")
-    .eq("user_id", user.id)
-    .single();
-
-  if (error) {
-    console.error(error);
-    return [];
-  }
-
-  return (data?.learned_letters as unknown as LearnedLetter[]) || [];
 }
 
 export async function saveLearnedLettersAction(

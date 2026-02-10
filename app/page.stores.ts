@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter } from "./page.types";
+import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage } from "./page.types";
 
 interface GameStore extends GameState {
   setStep: (step: TrainingStep) => void;
@@ -36,6 +36,10 @@ interface GameStore extends GameState {
   setLearnedLetters: (letters: LearnedLetter[]) => void;
   setQuizMode: (mode: QuizMode) => void;
   setTrainerMode: (mode: TrainerMode) => void;
+  setInterfaceMode: (mode: InterfaceMode) => void;
+  addChatMessage: (message: ChatMessage) => void;
+  updateLastChatMessage: (morse: string, text: string, isComplete: boolean) => void;
+  clearChatMessages: () => void;
 }
 
 export const useGameStore = create<GameStore>()((set, get) => ({
@@ -59,6 +63,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       quizMode: null,
       lastLearnedLetter: null,
       trainerMode: "mixed",
+      interfaceMode: "training",
+      chatMessages: [],
 
   setStep: (step) => set({ step }),
   setMode: (mode) => set({ mode, step: "ready", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
@@ -168,4 +174,15 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   setLearnedLetters: (letters) => set({ learnedLetters: letters }),
   setQuizMode: (mode) => set({ quizMode: mode }),
   setTrainerMode: (mode) => set({ trainerMode: mode }),
+  setInterfaceMode: (mode) => set({ interfaceMode: mode }),
+  addChatMessage: (message) => set((state) => ({ chatMessages: [...state.chatMessages, message] })),
+  updateLastChatMessage: (morse, text, isComplete) =>
+    set((state) => {
+      const messages = [...state.chatMessages];
+      if (messages.length > 0) {
+        messages[messages.length - 1] = { ...messages[messages.length - 1], morse, text, isComplete };
+      }
+      return { chatMessages: messages };
+    }),
+  clearChatMessages: () => set({ chatMessages: [] }),
 }));

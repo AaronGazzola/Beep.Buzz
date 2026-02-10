@@ -41,16 +41,16 @@ export function useMorseDemo() {
 }
 
 export function useLearnedLetters() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const { setLearnedLetters } = useGameStore();
 
   const query = useQuery({
-    queryKey: ["learnedLetters"],
+    queryKey: ["learnedLetters", user?.id],
     queryFn: async () => {
       const letters = await getLearnedLettersAction();
       return letters;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!user,
     staleTime: 1000 * 60 * 5,
   });
 

@@ -42,25 +42,29 @@ export async function updateNotificationSettingsAction(
 export async function getCurrentProfileAction() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-  if (authError || !user) {
+    if (authError || !user) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
     return null;
   }
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .single();
-
-  if (error) {
-    console.error(error);
-    return null;
-  }
-
-  return data;
 }

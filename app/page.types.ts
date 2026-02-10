@@ -12,6 +12,15 @@ export type QuizMode = "letter-to-morse" | "morse-to-letter" | null;
 
 export type TrainerMode = "learn" | "practice" | "mixed";
 
+export type InterfaceMode = "training" | "chatAI" | "chatPerson";
+
+export interface ChatMessage {
+  speaker: Speaker;
+  morse: string;
+  text: string;
+  isComplete: boolean;
+}
+
 export interface LearnedLetter {
   letter: string;
   practiceCount: number;
@@ -49,6 +58,8 @@ export interface GameState {
   quizMode: QuizMode;
   lastLearnedLetter: string | null;
   trainerMode: TrainerMode;
+  interfaceMode: InterfaceMode;
+  chatMessages: ChatMessage[];
 }
 
 export interface MorseInputState {
