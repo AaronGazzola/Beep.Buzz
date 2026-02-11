@@ -3,25 +3,20 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useGameStore } from "@/app/page.stores";
-import { morseToText, playMorseAudio } from "@/lib/morse.utils";
+import { morseToText, textToMorse } from "@/lib/morse.utils";
+import { useAIChat } from "@/app/page.hooks";
 import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
 import type { Speaker } from "./MorseCharacters";
+import type { MorseSpeed } from "@/app/page.types";
 
 const DOT_THRESHOLD = 200;
-const AI_WPM = 8;
-const DIT_DURATION = 1200 / AI_WPM;
-const CHARACTER_GAP_DURATION = DIT_DURATION * 3;
-const WORD_GAP_DURATION = DIT_DURATION * 7;
-const MESSAGE_END_DURATION = DIT_DURATION * 14;
 
-const AI_RESPONSES = [
-  { morse: ".... .. / - .... . .-. .", text: "HI THERE" },
-  { morse: ".... --- .-- / .- .-. . / -.-- --- ..-", text: "HOW ARE YOU" },
-  { morse: "--. .-. . .- -", text: "GREAT" },
-  { morse: "-. .. -.-. . / .--- --- -...", text: "NICE JOB" },
-  { morse: "-.- . . .--. / --. --- .. -. --.", text: "KEEP GOING" },
-  { morse: ".-- . .-.. .-.. / -.. --- -. .", text: "WELL DONE" },
-];
+const SPEED_WPM: Record<MorseSpeed, number> = {
+  slow: 8,
+  medium: 14,
+  fast: 20,
+  fastest: 28,
+};
 
 interface ChatBubbleProps {
   speaker: Speaker;
@@ -90,6 +85,10 @@ export function MorseChatAI({ className }: { className?: string }) {
     updateLastChatMessage,
   } = useGameStore();
 
+  const aiChat = useAIChat();
+  const aiChatRef = useRef(aiChat);
+  aiChatRef.current = aiChat;
+
   const [isVocalizing, setIsVocalizing] = useState(false);
   const [isAITyping, setIsAITyping] = useState(false);
   const [isAIVocalizing, setIsAIVocalizing] = useState(false);
@@ -115,13 +114,6 @@ export function MorseChatAI({ className }: { className?: string }) {
   })();
 
   useEffect(() => {
-    if (!hasInitialized.current && chatMessages.length === 0) {
-      hasInitialized.current = true;
-      playAIResponse(".... .. / - .... . .-. .", "HI THERE");
-    }
-  }, [chatMessages.length]);
-
-  useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
@@ -139,77 +131,76 @@ export function MorseChatAI({ className }: { className?: string }) {
       isComplete: false,
     });
 
-    const dotDuration = DIT_DURATION;
-    const dashDuration = dotDuration * 3;
-    const symbolGap = dotDuration;
-    const letterGap = dotDuration * 3;
-
-    let currentTime = 0;
-    const timeouts: NodeJS.Timeout[] = [];
-
+    const audioCtx = new AudioContext();
     const symbols = morse.split("");
-    let displayIndex = 0;
     let builtMorse = "";
     let builtText = "";
 
+    const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+    const getDurations = () => {
+      const wpm = SPEED_WPM[useGameStore.getState().morseSpeed];
+      const dit = 1200 / wpm;
+      return { dot: dit, dash: dit * 3, symbolGap: dit, letterGap: dit * 3 };
+    };
+
+    const playTone = (duration: number) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 600;
+      osc.type = "sine";
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.5, now + 0.01);
+      gain.gain.setValueAtTime(0.5, now + duration / 1000 - 0.01);
+      gain.gain.linearRampToValueAtTime(0, now + duration / 1000);
+      osc.start(now);
+      osc.stop(now + duration / 1000);
+    };
+
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];
+      const d = getDurations();
 
       if (symbol === "." || symbol === "-") {
-        const beepDuration = symbol === "." ? dotDuration : dashDuration;
-
-        timeouts.push(setTimeout(() => {
-          builtMorse += symbol;
-          setDisplayedAIMorse(builtMorse);
-          updateLastChatMessage(builtMorse, builtText, false);
-          setIsAIVocalizing(true);
-        }, currentTime));
-
-        timeouts.push(setTimeout(() => {
-          setIsAIVocalizing(false);
-        }, currentTime + beepDuration));
-
-        if (symbol === ".") {
-          currentTime += dotDuration + symbolGap;
-        } else {
-          currentTime += dashDuration + symbolGap;
-        }
-        displayIndex++;
+        const beepDuration = symbol === "." ? d.dot : d.dash;
+        builtMorse += symbol;
+        setDisplayedAIMorse(builtMorse);
+        updateLastChatMessage(builtMorse, builtText, false);
+        setIsAIVocalizing(true);
+        playTone(beepDuration);
+        await wait(beepDuration);
+        setIsAIVocalizing(false);
+        await wait(d.symbolGap);
       } else if (symbol === " ") {
-        timeouts.push(setTimeout(() => {
-          builtMorse += " ";
-          builtText = morseToText(builtMorse);
-          setDisplayedAIMorse(builtMorse);
-          updateLastChatMessage(builtMorse, builtText, false);
-        }, currentTime));
-        currentTime += letterGap;
-        displayIndex++;
+        builtMorse += " ";
+        builtText = morseToText(builtMorse);
+        setDisplayedAIMorse(builtMorse);
+        updateLastChatMessage(builtMorse, builtText, false);
+        await wait(d.letterGap);
       } else if (symbol === "/") {
-        timeouts.push(setTimeout(() => {
-          builtMorse += " / ";
-          builtText = morseToText(builtMorse);
-          setDisplayedAIMorse(builtMorse);
-          updateLastChatMessage(builtMorse, builtText, false);
-        }, currentTime));
-        currentTime += letterGap * 2.3;
-        displayIndex++;
+        builtMorse += " / ";
+        builtText = morseToText(builtMorse);
+        setDisplayedAIMorse(builtMorse);
+        updateLastChatMessage(builtMorse, builtText, false);
+        await wait(d.letterGap * 2.3);
       }
     }
 
-    timeouts.push(setTimeout(() => {
-      updateLastChatMessage(morse, text, true);
-      setIsAITyping(false);
-      setIsAIVocalizing(false);
-    }, currentTime));
-
-    try {
-      await playMorseAudio(morse, { volume: 0.5, wpm: AI_WPM, frequency: 600 });
-    } catch (error) {
-      timeouts.forEach(clearTimeout);
-      setIsAITyping(false);
-      setIsAIVocalizing(false);
-    }
+    updateLastChatMessage(morse, text, true);
+    setIsAITyping(false);
+    setIsAIVocalizing(false);
+    audioCtx.close();
   }, [addChatMessage, updateLastChatMessage]);
+
+  useEffect(() => {
+    if (!hasInitialized.current && chatMessages.length === 0) {
+      hasInitialized.current = true;
+      playAIResponse(".... .. / - .... . .-. .", "HI THERE");
+    }
+  }, [chatMessages.length, playAIResponse]);
 
   useEffect(() => {
     if (currentSpeaker === "beep" && userInput) {
@@ -320,9 +311,17 @@ export function MorseChatAI({ className }: { className?: string }) {
     updateLastChatMessage(currentMorse, finalText, true);
     clearUserInput();
 
-    setTimeout(() => {
-      const nextResponse = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
-      playAIResponse(nextResponse.morse, nextResponse.text);
+    setTimeout(async () => {
+      setIsAITyping(true);
+      try {
+        const currentMessages = useGameStore.getState().chatMessages;
+        const responseText = await aiChatRef.current.mutateAsync(currentMessages);
+        const responseMorse = textToMorse(responseText);
+        playAIResponse(responseMorse, responseText);
+      } catch (error) {
+        console.error("Failed to get AI response:", error);
+        setIsAITyping(false);
+      }
     }, 500);
   }, [clearUserInput, updateLastChatMessage, playAIResponse]);
 
@@ -338,6 +337,12 @@ export function MorseChatAI({ className }: { className?: string }) {
     appendToUserInput(signal);
     pressStartRef.current = null;
 
+    const currentWpm = SPEED_WPM[useGameStore.getState().morseSpeed];
+    const ditDuration = 1200 / currentWpm;
+    const charGap = ditDuration * 3;
+    const wordGap = ditDuration * 7;
+    const messageEnd = ditDuration * 14;
+
     characterGapTimerRef.current = setTimeout(() => {
       appendToUserInput(" ");
       characterGapTimerRef.current = null;
@@ -348,9 +353,9 @@ export function MorseChatAI({ className }: { className?: string }) {
 
         messageEndTimerRef.current = setTimeout(() => {
           completeMessage();
-        }, WORD_GAP_DURATION);
-      }, WORD_GAP_DURATION - CHARACTER_GAP_DURATION);
-    }, CHARACTER_GAP_DURATION);
+        }, messageEnd);
+      }, wordGap - charGap);
+    }, charGap);
   }, [appendToUserInput, stopBeep, completeMessage]);
 
 

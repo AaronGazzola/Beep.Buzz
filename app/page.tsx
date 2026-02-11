@@ -7,8 +7,9 @@ import { LearnedLetters } from "@/components/LearnedLetters";
 import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
 import { useAuthStore } from "./layout.stores";
 import { useGameStore } from "./page.stores";
+import { Turtle, Rabbit, Bike, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { InterfaceMode } from "./page.types";
+import type { InterfaceMode, MorseSpeed } from "./page.types";
 
 const interfaceModes: { value: InterfaceMode; label: string }[] = [
   { value: "training", label: "Training" },
@@ -16,11 +17,20 @@ const interfaceModes: { value: InterfaceMode; label: string }[] = [
   { value: "chatPerson", label: "User Chat" },
 ];
 
+const speedCycle: MorseSpeed[] = ["slow", "medium", "fast", "fastest"];
+
+const speedIcons: Record<MorseSpeed, typeof Turtle> = {
+  slow: Turtle,
+  medium: Rabbit,
+  fast: Bike,
+  fastest: Rocket,
+};
+
 export default function Home() {
   const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
   const { isAuthenticated } = useAuthStore();
-  const { interfaceMode, setInterfaceMode } = useGameStore();
+  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed } = useGameStore();
 
   const showTrainerModes = interfaceMode === "training";
 
@@ -36,7 +46,7 @@ export default function Home() {
         </p>
 
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="mb-6 flex justify-center">
+          <div className="mb-6 flex justify-center items-center gap-2">
             <div className="inline-flex rounded-lg bg-muted p-1">
               {interfaceModes.map((mode) => (
                 <button
@@ -55,6 +65,21 @@ export default function Home() {
                 </button>
               ))}
             </div>
+            {interfaceMode === "chatAI" && (() => {
+              const SpeedIcon = speedIcons[morseSpeed];
+              return (
+                <button
+                  onClick={() => {
+                    const currentIndex = speedCycle.indexOf(morseSpeed);
+                    const nextIndex = (currentIndex + 1) % speedCycle.length;
+                    setMorseSpeed(speedCycle[nextIndex]);
+                  }}
+                  className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <SpeedIcon className="w-5 h-5" />
+                </button>
+              );
+            })()}
           </div>
 
           <div className={cn(

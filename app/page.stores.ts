@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage } from "./page.types";
+import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage, MorseSpeed } from "./page.types";
 
 interface GameStore extends GameState {
   setStep: (step: TrainingStep) => void;
@@ -40,6 +40,7 @@ interface GameStore extends GameState {
   addChatMessage: (message: ChatMessage) => void;
   updateLastChatMessage: (morse: string, text: string, isComplete: boolean) => void;
   clearChatMessages: () => void;
+  setMorseSpeed: (speed: MorseSpeed) => void;
 }
 
 export const useGameStore = create<GameStore>()((set, get) => ({
@@ -65,6 +66,7 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       trainerMode: "mixed",
       interfaceMode: "training",
       chatMessages: [],
+      morseSpeed: "slow",
 
   setStep: (step) => set({ step }),
   setMode: (mode) => set({ mode, step: "ready", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
@@ -185,4 +187,5 @@ export const useGameStore = create<GameStore>()((set, get) => ({
       return { chatMessages: messages };
     }),
   clearChatMessages: () => set({ chatMessages: [] }),
+  setMorseSpeed: (speed) => set({ morseSpeed: speed }),
 }));

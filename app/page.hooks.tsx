@@ -4,7 +4,7 @@ import { textToMorse, playMorseAudio } from "@/lib/morse.utils";
 import { useAuthStore } from "./layout.stores";
 import { useGameStore } from "./page.stores";
 import { getLearnedLettersAction, saveLearnedLettersAction } from "./page.actions";
-import type { LearnedLetter } from "./page.types";
+import type { ChatMessage, LearnedLetter } from "./page.types";
 
 export function useMorseDemo() {
   const [inputText, setInputText] = useState("");
@@ -91,4 +91,32 @@ export function useLearnedLettersSync() {
     prevLettersRef.current = currentLetters;
     saveLearnedLetters.mutate(learnedLetters);
   }, [isAuthenticated, learnedLetters, saveLearnedLetters]);
+}
+
+export function useAIChat() {
+  return useMutation({
+    mutationFn: async (chatMessages: ChatMessage[]) => {
+      const apiMessages = chatMessages
+        .filter((msg) => msg.isComplete && msg.text.trim().length > 0)
+        .map((msg) => ({
+          role: msg.speaker === "beep" ? ("user" as const) : ("assistant" as const),
+          content: msg.text,
+        }));
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Chat API error:", errorText);
+        throw new Error("Failed to get AI response");
+      }
+
+      const data = await response.json();
+      return data.text as string;
+    },
+  });
 }

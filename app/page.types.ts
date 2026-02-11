@@ -14,6 +14,8 @@ export type TrainerMode = "learn" | "practice" | "mixed";
 
 export type InterfaceMode = "training" | "chatAI" | "chatPerson";
 
+export type MorseSpeed = "slow" | "medium" | "fast" | "fastest";
+
 export interface ChatMessage {
   speaker: Speaker;
   morse: string;
@@ -60,6 +62,7 @@ export interface GameState {
   trainerMode: TrainerMode;
   interfaceMode: InterfaceMode;
   chatMessages: ChatMessage[];
+  morseSpeed: MorseSpeed;
 }
 
 export interface MorseInputState {
