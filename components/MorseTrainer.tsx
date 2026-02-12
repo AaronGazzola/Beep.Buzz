@@ -57,6 +57,9 @@ export function MorseTrainer({ className }: { className?: string }) {
   const gainNodeRef = useRef<GainNode | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isLongPressRef = useRef(false);
 
   const currentSpeaker: Speaker = step === "user-input" ? "beep" : "buzz";
 
@@ -189,6 +192,15 @@ export function MorseTrainer({ className }: { className?: string }) {
   }, [step, quizMode]);
 
   useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    };
+  }, [step]);
+
+  useEffect(() => {
     if (step === "feedback") {
       const timer = setTimeout(() => {
         startNewChallenge();
@@ -283,6 +295,82 @@ export function MorseTrainer({ className }: { className?: string }) {
     appendToUserInput(signal);
     pressStartRef.current = null;
   }, [step, appendToUserInput, stopBeep, quizMode]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (step !== "user-input") return;
+    if (quizMode === "morse-to-letter") return;
+
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input')) return;
+
+    e.preventDefault();
+
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    isLongPressRef.current = false;
+
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+    }, DOT_THRESHOLD);
+
+    pressStartRef.current = Date.now();
+    setIsVocalizing(true);
+    startBeep();
+  }, [step, startBeep, quizMode]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartPosRef.current || !longPressTimerRef.current) return;
+
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
+
+    if (deltaX > 10 || deltaY > 10) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (step !== "user-input" || pressStartRef.current === null) return;
+    if (quizMode === "morse-to-letter") return;
+
+    e.preventDefault();
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    stopBeep();
+    setIsVocalizing(false);
+
+    const pressDuration = Date.now() - pressStartRef.current;
+    const signal = pressDuration < DOT_THRESHOLD ? "." : "-";
+
+    appendToUserInput(signal);
+    pressStartRef.current = null;
+    touchStartPosRef.current = null;
+    isLongPressRef.current = false;
+  }, [step, appendToUserInput, stopBeep, quizMode]);
+
+  const handleTouchCancel = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    if (pressStartRef.current !== null) {
+      stopBeep();
+      setIsVocalizing(false);
+      pressStartRef.current = null;
+    }
+
+    touchStartPosRef.current = null;
+    isLongPressRef.current = false;
+  }, [stopBeep]);
 
   useEffect(() => {
     const isInputFocused = () => {
@@ -653,12 +741,17 @@ export function MorseTrainer({ className }: { className?: string }) {
         shouldBeClickable && "cursor-pointer",
         className
       )}
+      style={step === "user-input" && quizMode !== "morse-to-letter" ? { touchAction: "none" } : undefined}
       onClick={handleMainClick}
       onMouseDown={step === "user-input" && quizMode !== "morse-to-letter" ? (e) => { if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('input')) { e.preventDefault(); handlePressStart(); } } : undefined}
       onMouseUp={step === "user-input" && quizMode !== "morse-to-letter" ? (e) => { if (!(e.target as HTMLElement).closest('button') && !(e.target as HTMLElement).closest('input')) { e.preventDefault(); handlePressEnd(); } } : undefined}
       onMouseLeave={step === "user-input" && quizMode !== "morse-to-letter" ? () => { if (pressStartRef.current !== null) handlePressEnd(); } : undefined}
+      onTouchStart={step === "user-input" && quizMode !== "morse-to-letter" ? handleTouchStart : undefined}
+      onTouchMove={step === "user-input" && quizMode !== "morse-to-letter" ? handleTouchMove : undefined}
+      onTouchEnd={step === "user-input" && quizMode !== "morse-to-letter" ? handleTouchEnd : undefined}
+      onTouchCancel={step === "user-input" && quizMode !== "morse-to-letter" ? handleTouchCancel : undefined}
     >
-      <div className="flex flex-col items-center gap-1 lg:order-1">
+      <div className="flex flex-col items-center gap-1 order-3 lg:order-1">
         <div className="w-24 h-24 md:w-32 md:h-32">
           <BeepCharacter isSpeaking={currentSpeaker === "beep"} isVocalizing={currentSpeaker === "beep" && isVocalizing} />
         </div>
@@ -666,7 +759,7 @@ export function MorseTrainer({ className }: { className?: string }) {
         <span className="text-base text-muted-foreground">(You)</span>
       </div>
 
-      <div className="lg:order-2 flex-1 flex items-center">
+      <div className="order-2 flex-1 flex items-center">
         <SpeechBubble
           speaker={currentSpeaker}
           message={getMessage()}
@@ -676,12 +769,12 @@ export function MorseTrainer({ className }: { className?: string }) {
         />
       </div>
 
-      <div className="flex flex-col items-center gap-1 lg:order-3">
+      <div className="flex flex-col-reverse lg:flex-col items-center gap-1 order-1 lg:order-3">
         <div className="w-24 h-24 md:w-32 md:h-32">
           <BuzzCharacter isSpeaking={currentSpeaker === "buzz"} isVocalizing={currentSpeaker === "buzz" && isVocalizing} />
         </div>
-        <span className="text-lg font-semibold text-accent-foreground">Buzz</span>
         <span className="text-base text-muted-foreground">(Teacher)</span>
+        <span className="text-lg font-semibold text-accent-foreground">Buzz</span>
       </div>
     </div>
   );

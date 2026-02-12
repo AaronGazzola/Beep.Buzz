@@ -369,17 +369,17 @@ function SpeechBubble({
           const [tl, tr, br, bl] = corners;
           const pointerLeftX = centerX - pointerWidth / 2;
           const pointerRightX = centerX + pointerWidth / 2;
-          const tipY = -8 + pointerVariation;
+          const tipY = 348 + pointerVariation;
 
           return `
             M ${tl.x + cornerRadius} ${tl.y}
-            L ${pointerLeftX} ${tl.y}
-            L ${centerX} ${tipY}
-            L ${pointerRightX} ${tl.y}
             L ${tr.x - cornerRadius} ${tr.y}
             Q ${tr.x} ${tr.y}, ${tr.x} ${tr.y + cornerRadius}
             L ${br.x} ${br.y - cornerRadius}
             Q ${br.x} ${br.y}, ${br.x - cornerRadius} ${br.y}
+            L ${pointerRightX} ${br.y}
+            L ${centerX} ${tipY}
+            L ${pointerLeftX} ${br.y}
             L ${bl.x + cornerRadius} ${bl.y}
             Q ${bl.x} ${bl.y}, ${bl.x} ${bl.y - cornerRadius}
             L ${tl.x} ${tl.y + cornerRadius}
@@ -390,15 +390,15 @@ function SpeechBubble({
           const [tl, tr, br, bl] = corners;
           const pointerLeftX = centerX - pointerWidth / 2;
           const pointerRightX = centerX + pointerWidth / 2;
-          const tipY = 348 + pointerVariation;
+          const tipY = -8 + pointerVariation;
 
           return `
             M ${tl.x} ${tl.y}
+            L ${pointerLeftX} ${tl.y}
+            L ${centerX} ${tipY}
+            L ${pointerRightX} ${tl.y}
             L ${tr.x} ${tr.y}
             L ${br.x} ${br.y}
-            L ${pointerRightX} ${br.y}
-            L ${centerX} ${tipY}
-            L ${pointerLeftX} ${br.y}
             L ${bl.x} ${bl.y}
             Z
           `;

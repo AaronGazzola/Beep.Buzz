@@ -101,6 +101,9 @@ export function MorseChatAI({ className }: { className?: string }) {
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isLongPressRef = useRef(false);
 
   const hasInitialized = useRef(false);
 
@@ -406,17 +409,74 @@ export function MorseChatAI({ className }: { className?: string }) {
     };
   }, [handlePressStart, handlePressEnd, currentSpeaker, isAITyping]);
 
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    };
+  }, [currentSpeaker, isAITyping]);
+
   const handleContainerTouchStart = useCallback((e: React.TouchEvent) => {
     if (currentSpeaker !== "beep" || isAITyping) return;
     e.preventDefault();
+
+    const touch = e.touches[0];
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+    isLongPressRef.current = false;
+
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true;
+    }, DOT_THRESHOLD);
+
     handlePressStart();
   }, [currentSpeaker, isAITyping, handlePressStart]);
+
+  const handleContainerTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartPosRef.current || !longPressTimerRef.current) return;
+
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPosRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPosRef.current.y);
+
+    if (deltaX > 10 || deltaY > 10) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+  }, []);
 
   const handleContainerTouchEnd = useCallback((e: React.TouchEvent) => {
     if (currentSpeaker !== "beep" || isAITyping) return;
     e.preventDefault();
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
     handlePressEnd();
+    touchStartPosRef.current = null;
+    isLongPressRef.current = false;
   }, [currentSpeaker, isAITyping, handlePressEnd]);
+
+  const handleContainerTouchCancel = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    if (pressStartRef.current !== null) {
+      stopBeep();
+      setIsVocalizing(false);
+      pressStartRef.current = null;
+    }
+
+    touchStartPosRef.current = null;
+    isLongPressRef.current = false;
+  }, [stopBeep]);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (currentSpeaker !== "beep" || isAITyping) return;
@@ -452,7 +512,9 @@ export function MorseChatAI({ className }: { className?: string }) {
           touchAction: 'none',
         }}
         onTouchStart={handleContainerTouchStart}
+        onTouchMove={handleContainerTouchMove}
         onTouchEnd={handleContainerTouchEnd}
+        onTouchCancel={handleContainerTouchCancel}
         onMouseDown={handleContainerMouseDown}
         onMouseUp={handleContainerMouseUp}
         onMouseLeave={handleContainerMouseLeave}
