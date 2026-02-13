@@ -94,6 +94,42 @@ export type Database = {
           },
         ]
       }
+      chat_queue: {
+        Row: {
+          created_at: string
+          id: string
+          matched_at: string | null
+          partner_id: string | null
+          partner_username: string | null
+          room_id: string
+          status: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matched_at?: string | null
+          partner_id?: string | null
+          partner_username?: string | null
+          room_id?: string
+          status?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matched_at?: string | null
+          partner_id?: string | null
+          partner_username?: string | null
+          room_id?: string
+          status?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -329,6 +365,7 @@ export type Database = {
           skill_rating: number
           updated_at: string
           user_id: string
+          username: string | null
           visual_settings: Json
         }
         Insert: {
@@ -343,6 +380,7 @@ export type Database = {
           skill_rating?: number
           updated_at?: string
           user_id: string
+          username?: string | null
           visual_settings?: Json
         }
         Update: {
@@ -357,6 +395,7 @@ export type Database = {
           skill_rating?: number
           updated_at?: string
           user_id?: string
+          username?: string | null
           visual_settings?: Json
         }
         Relationships: []
@@ -426,6 +465,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_chat_queue_entry: {
+        Args: { claiming_user_id: string; claiming_username: string }
+        Returns: {
+          created_at: string
+          id: string
+          matched_at: string | null
+          partner_id: string | null
+          partner_username: string | null
+          room_id: string
+          status: string
+          user_id: string
+          username: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "chat_queue"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {

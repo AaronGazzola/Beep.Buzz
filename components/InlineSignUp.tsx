@@ -22,51 +22,33 @@ function useInlineSignUp() {
     mutationFn: async ({
       email,
       password,
+      username,
     }: {
       email: string;
       password: string;
+      username: string;
     }) => {
-      console.log("[InlineSignUp] Starting sign up for:", email);
-      console.log(
-        "[InlineSignUp] Redirect URL:",
-        `${window.location.origin}/`,
-      );
-      console.log("[InlineSignUp] Learned letters to save:", learnedLetters);
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
+            pending_username: username,
             pending_learned_letters:
               learnedLetters.length > 0 ? learnedLetters : undefined,
           },
         },
       });
 
-      console.log("[InlineSignUp] Response data:", data);
-      console.log("[InlineSignUp] Response error:", error);
-
       if (error) {
         console.error("[InlineSignUp] Error during sign up:", error);
-        if (error.message.includes("already registered")) {
-          throw new Error("An account with this email already exists");
-        }
         throw new Error(error.message);
       }
 
-      console.log("[InlineSignUp] User created:", data.user?.id);
-      console.log("[InlineSignUp] User email:", data.user?.email);
-      console.log(
-        "[InlineSignUp] Email confirmed at:",
-        data.user?.email_confirmed_at,
-      );
-      console.log(
-        "[InlineSignUp] Confirmation sent at:",
-        data.user?.confirmation_sent_at,
-      );
-      console.log("[InlineSignUp] User metadata:", data.user?.user_metadata);
+      if (data.user?.identities?.length === 0) {
+        throw new Error("An account with this email already exists");
+      }
 
       return data;
     },
@@ -88,6 +70,7 @@ interface InlineSignUpProps {
 }
 
 export function InlineSignUp({ className }: InlineSignUpProps) {
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -103,7 +86,7 @@ export function InlineSignUp({ className }: InlineSignUpProps) {
       return;
     }
 
-    signUp.mutate({ email, password });
+    signUp.mutate({ email, password, username });
   };
 
   return (
@@ -124,6 +107,18 @@ export function InlineSignUp({ className }: InlineSignUpProps) {
         onSubmit={handleSubmit}
         className="space-y-4"
       >
+        <div className="space-y-2">
+          <Label htmlFor="inline-username">Username</Label>
+          <Input
+            id="inline-username"
+            type="text"
+            placeholder="your-username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="inline-email">Email</Label>
           <Input

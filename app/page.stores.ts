@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage, MorseSpeed } from "./page.types";
+import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage, MorseSpeed, UserChatStatus, ChatRoom } from "./page.types";
 
 interface GameStore extends GameState {
   setStep: (step: TrainingStep) => void;
@@ -188,4 +188,59 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     }),
   clearChatMessages: () => set({ chatMessages: [] }),
   setMorseSpeed: (speed) => set({ morseSpeed: speed }),
+}));
+
+type UserChatStore = {
+  chatStatus: UserChatStatus;
+  chatRoom: ChatRoom | null;
+  isMyTurn: boolean;
+  isPartnerVocalizing: boolean;
+  partnerMorse: string;
+  queueEntryId: string | null;
+  setChatStatus: (status: UserChatStatus) => void;
+  setChatRoom: (room: ChatRoom | null) => void;
+  setIsMyTurn: (isMyTurn: boolean) => void;
+  setIsPartnerVocalizing: (isVocalizing: boolean) => void;
+  appendToPartnerMorse: (signal: string) => void;
+  addPartnerCharGap: () => void;
+  addPartnerWordGap: () => void;
+  clearPartnerMorse: () => void;
+  setQueueEntryId: (id: string | null) => void;
+  resetUserChat: () => void;
+};
+
+export const useUserChatStore = create<UserChatStore>()((set) => ({
+  chatStatus: "idle",
+  chatRoom: null,
+  isMyTurn: false,
+  isPartnerVocalizing: false,
+  partnerMorse: "",
+  queueEntryId: null,
+  setChatStatus: (status) => set({ chatStatus: status }),
+  setChatRoom: (room) => set({ chatRoom: room }),
+  setIsMyTurn: (isMyTurn) => set({ isMyTurn }),
+  setIsPartnerVocalizing: (isVocalizing) => set({ isPartnerVocalizing: isVocalizing }),
+  appendToPartnerMorse: (signal) => set((state) => ({ partnerMorse: state.partnerMorse + signal })),
+  addPartnerCharGap: () => set((state) => {
+    if (state.partnerMorse.length === 0) return state;
+    if (state.partnerMorse.endsWith(" ")) return state;
+    if (state.partnerMorse.endsWith("/")) return state;
+    return { partnerMorse: state.partnerMorse + " " };
+  }),
+  addPartnerWordGap: () => set((state) => {
+    if (state.partnerMorse.length === 0) return state;
+    if (state.partnerMorse.endsWith("/")) return state;
+    const trimmed = state.partnerMorse.trimEnd();
+    return { partnerMorse: trimmed + " / " };
+  }),
+  clearPartnerMorse: () => set({ partnerMorse: "" }),
+  setQueueEntryId: (id) => set({ queueEntryId: id }),
+  resetUserChat: () => set({
+    chatStatus: "idle",
+    chatRoom: null,
+    isMyTurn: false,
+    isPartnerVocalizing: false,
+    partnerMorse: "",
+    queueEntryId: null,
+  }),
 }));

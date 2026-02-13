@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { MorseTrainer } from "@/components/MorseTrainer";
 import { MorseChatAI } from "@/components/MorseChatAI";
+import { MorseChatUser } from "@/components/MorseChatUser";
 import { InlineSignUp } from "@/components/InlineSignUp";
 import { LearnedLetters } from "@/components/LearnedLetters";
 import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
 import { useAuthStore } from "./layout.stores";
-import { useGameStore } from "./page.stores";
+import { useGameStore, useUserChatStore } from "./page.stores";
 import { Turtle, Rabbit, Bike, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { InterfaceMode, MorseSpeed } from "./page.types";
@@ -30,7 +32,17 @@ export default function Home() {
   const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
   const { isAuthenticated } = useAuthStore();
-  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed } = useGameStore();
+  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, clearChatMessages } = useGameStore();
+  const resetUserChat = useUserChatStore((s) => s.resetUserChat);
+  const prevModeRef = useRef(interfaceMode);
+
+  useEffect(() => {
+    if (prevModeRef.current === "chatPerson" && interfaceMode !== "chatPerson") {
+      resetUserChat();
+      clearChatMessages();
+    }
+    prevModeRef.current = interfaceMode;
+  }, [interfaceMode, resetUserChat, clearChatMessages]);
 
   const showTrainerModes = interfaceMode === "training";
 
@@ -52,20 +64,20 @@ export default function Home() {
                 <button
                   key={mode.value}
                   onClick={() => setInterfaceMode(mode.value)}
-                  disabled={mode.value === "chatPerson"}
+                  disabled={mode.value === "chatPerson" && !isAuthenticated}
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                     interfaceMode === mode.value
                       ? "bg-background text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground",
-                    mode.value === "chatPerson" && "opacity-50 cursor-not-allowed"
+                    mode.value === "chatPerson" && !isAuthenticated && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   {mode.label}
                 </button>
               ))}
             </div>
-            {interfaceMode === "chatAI" && (() => {
+            {(interfaceMode === "chatAI" || interfaceMode === "chatPerson") && (() => {
               const SpeedIcon = speedIcons[morseSpeed];
               return (
                 <button
@@ -90,6 +102,8 @@ export default function Home() {
               <MorseTrainer />
             ) : interfaceMode === "chatAI" ? (
               <MorseChatAI />
+            ) : interfaceMode === "chatPerson" ? (
+              <MorseChatUser />
             ) : null}
           </div>
         </div>

@@ -22,6 +22,7 @@ import { Loader2, Mail, Check, Eye, EyeOff } from "lucide-react";
 export default function SignUpPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,12 +45,12 @@ export default function SignUpPage() {
       return;
     }
 
-    signUp.mutate({ email, password });
+    signUp.mutate({ email, password, username });
   };
 
   const handleMagicLink = () => {
     if (!email) return;
-    sendMagicLink.mutate({ email });
+    sendMagicLink.mutate({ email, username });
   };
 
   return (
@@ -63,6 +64,18 @@ export default function SignUpPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="your-username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

@@ -71,3 +71,21 @@ export interface MorseInputState {
   lastReleaseTime: number | null;
   currentSignals: string;
 }
+
+export type UserChatStatus = "idle" | "searching" | "connected" | "disconnected";
+
+export interface ChatRoom {
+  id: string;
+  roomId: string;
+  userId: string;
+  username: string;
+  partnerId: string | null;
+  partnerUsername: string | null;
+  isCreator: boolean;
+}
+
+export interface MorseSignal {
+  type: "tap_start" | "tap_end" | "char_gap" | "word_gap" | "message_end";
+  timestamp: number;
+  signal?: "." | "-";
+}
