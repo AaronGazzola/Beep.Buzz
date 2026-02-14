@@ -3,20 +3,10 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useGameStore } from "@/app/page.stores";
-import { morseToText, textToMorse } from "@/lib/morse.utils";
+import { morseToText, textToMorse, SPEED_WPM } from "@/lib/morse.utils";
 import { useAIChat } from "@/app/page.hooks";
 import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
 import type { Speaker } from "./MorseCharacters";
-import type { MorseSpeed } from "@/app/page.types";
-
-const DOT_THRESHOLD = 200;
-
-const SPEED_WPM: Record<MorseSpeed, number> = {
-  slow: 8,
-  medium: 14,
-  fast: 20,
-  fastest: 28,
-};
 
 interface ChatBubbleProps {
   speaker: Speaker;
@@ -83,7 +73,10 @@ export function MorseChatAI({ className }: { className?: string }) {
     clearUserInput,
     addChatMessage,
     updateLastChatMessage,
+    morseSpeed,
   } = useGameStore();
+
+  const dotThreshold = (1200 / SPEED_WPM[morseSpeed]) * 2;
 
   const aiChat = useAIChat();
   const aiChatRef = useRef(aiChat);
@@ -120,7 +113,7 @@ export function MorseChatAI({ className }: { className?: string }) {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
-  }, [chatMessages, userInput]);
+  }, [chatMessages.length, userInput]);
 
   const playAIResponse = useCallback(async (morse: string, text: string) => {
     setIsAITyping(true);
@@ -141,11 +134,9 @@ export function MorseChatAI({ className }: { className?: string }) {
 
     const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
-    const getDurations = () => {
-      const wpm = SPEED_WPM[useGameStore.getState().morseSpeed];
-      const dit = 1200 / wpm;
-      return { dot: dit, dash: dit * 3, symbolGap: dit, letterGap: dit * 3 };
-    };
+    const wpm = SPEED_WPM[morseSpeed];
+    const dit = 1200 / wpm;
+    const durations = { dot: dit, dash: dit * 3, symbolGap: dit, letterGap: dit * 3 };
 
     const playTone = (duration: number) => {
       const osc = audioCtx.createOscillator();
@@ -165,10 +156,9 @@ export function MorseChatAI({ className }: { className?: string }) {
 
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];
-      const d = getDurations();
 
       if (symbol === "." || symbol === "-") {
-        const beepDuration = symbol === "." ? d.dot : d.dash;
+        const beepDuration = symbol === "." ? durations.dot : durations.dash;
         builtMorse += symbol;
         setDisplayedAIMorse(builtMorse);
         updateLastChatMessage(builtMorse, builtText, false);
@@ -176,19 +166,19 @@ export function MorseChatAI({ className }: { className?: string }) {
         playTone(beepDuration);
         await wait(beepDuration);
         setIsAIVocalizing(false);
-        await wait(d.symbolGap);
+        await wait(durations.symbolGap);
       } else if (symbol === " ") {
         builtMorse += " ";
         builtText = morseToText(builtMorse);
         setDisplayedAIMorse(builtMorse);
         updateLastChatMessage(builtMorse, builtText, false);
-        await wait(d.letterGap);
+        await wait(durations.letterGap);
       } else if (symbol === "/") {
         builtMorse += " / ";
         builtText = morseToText(builtMorse);
         setDisplayedAIMorse(builtMorse);
         updateLastChatMessage(builtMorse, builtText, false);
-        await wait(d.letterGap * 2.3);
+        await wait(durations.letterGap * 2.3);
       }
     }
 
@@ -196,7 +186,7 @@ export function MorseChatAI({ className }: { className?: string }) {
     setIsAITyping(false);
     setIsAIVocalizing(false);
     audioCtx.close();
-  }, [addChatMessage, updateLastChatMessage]);
+  }, [addChatMessage, updateLastChatMessage, morseSpeed]);
 
   useEffect(() => {
     if (!hasInitialized.current && chatMessages.length === 0) {
@@ -271,7 +261,7 @@ export function MorseChatAI({ className }: { className?: string }) {
     }
   }, []);
 
-  const handlePressStart = useCallback(() => {
+  const handlePressStart = useCallback(async () => {
     if (currentSpeaker !== "beep" || isAITyping) return;
     if (pressStartRef.current !== null) return;
 
@@ -290,7 +280,7 @@ export function MorseChatAI({ className }: { className?: string }) {
 
     pressStartRef.current = Date.now();
     setIsVocalizing(true);
-    startBeep();
+    await startBeep();
   }, [currentSpeaker, isAITyping, startBeep]);
 
   const completeMessage = useCallback(() => {
@@ -335,13 +325,12 @@ export function MorseChatAI({ className }: { className?: string }) {
     setIsVocalizing(false);
 
     const pressDuration = Date.now() - pressStartRef.current;
-    const signal = pressDuration < DOT_THRESHOLD ? "." : "-";
+    const signal = pressDuration < dotThreshold ? "." : "-";
 
     appendToUserInput(signal);
     pressStartRef.current = null;
 
-    const currentWpm = SPEED_WPM[useGameStore.getState().morseSpeed];
-    const ditDuration = 1200 / currentWpm;
+    const ditDuration = 1200 / SPEED_WPM[morseSpeed];
     const charGap = ditDuration * 3;
     const wordGap = ditDuration * 7;
     const messageEnd = ditDuration * 14;
@@ -359,7 +348,7 @@ export function MorseChatAI({ className }: { className?: string }) {
         }, messageEnd);
       }, wordGap - charGap);
     }, charGap);
-  }, [appendToUserInput, stopBeep, completeMessage]);
+  }, [appendToUserInput, stopBeep, completeMessage, dotThreshold, morseSpeed]);
 
 
   useEffect(() => {
@@ -386,6 +375,7 @@ export function MorseChatAI({ className }: { className?: string }) {
       if (isInputFocused()) return;
       if (isModifierKey(e)) return;
       if (currentSpeaker !== "beep" || isAITyping) return;
+      if (e.code !== "Space") return;
 
       e.preventDefault();
       handlePressStart();
@@ -395,6 +385,7 @@ export function MorseChatAI({ className }: { className?: string }) {
       if (isInputFocused()) return;
       if (isModifierKey(e)) return;
       if (currentSpeaker !== "beep" || isAITyping) return;
+      if (e.code !== "Space") return;
 
       e.preventDefault();
       handlePressEnd();
@@ -418,6 +409,28 @@ export function MorseChatAI({ className }: { className?: string }) {
     };
   }, [currentSpeaker, isAITyping]);
 
+  useEffect(() => {
+    return () => {
+      if (pressStartRef.current !== null) {
+        stopBeep();
+        setIsVocalizing(false);
+        pressStartRef.current = null;
+      }
+      if (characterGapTimerRef.current) {
+        clearTimeout(characterGapTimerRef.current);
+        characterGapTimerRef.current = null;
+      }
+      if (wordGapTimerRef.current) {
+        clearTimeout(wordGapTimerRef.current);
+        wordGapTimerRef.current = null;
+      }
+      if (messageEndTimerRef.current) {
+        clearTimeout(messageEndTimerRef.current);
+        messageEndTimerRef.current = null;
+      }
+    };
+  }, [stopBeep]);
+
   const handleContainerTouchStart = useCallback((e: React.TouchEvent) => {
     if (currentSpeaker !== "beep" || isAITyping) return;
     e.preventDefault();
@@ -428,7 +441,7 @@ export function MorseChatAI({ className }: { className?: string }) {
 
     longPressTimerRef.current = setTimeout(() => {
       isLongPressRef.current = true;
-    }, DOT_THRESHOLD);
+    }, dotThreshold);
 
     handlePressStart();
   }, [currentSpeaker, isAITyping, handlePressStart]);
@@ -501,7 +514,7 @@ export function MorseChatAI({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col", className)}>
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
@@ -540,23 +553,6 @@ export function MorseChatAI({ className }: { className?: string }) {
             />
           );
         })}
-      </div>
-
-      <div className="border-t bg-background p-6">
-        <div className="text-center space-y-2">
-          <p className="text-base font-medium text-foreground">
-            Click anywhere or hit any key to tap morse
-          </p>
-          <p className="text-sm text-muted-foreground">
-            3 dit lengths = space between characters in words
-          </p>
-          <p className="text-sm text-muted-foreground">
-            7 dit lengths = space between words
-          </p>
-          <p className="text-sm text-muted-foreground">
-            14 dit lengths = end of message
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -2,7 +2,6 @@
 
 import { useGameStore } from "@/app/page.stores";
 import { useAuthStore } from "@/app/layout.stores";
-import { TrainerMode } from "@/app/page.types";
 import { textToMorse } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -78,24 +77,6 @@ function LearnedLetterItem({ letter }: { letter: string }) {
   );
 }
 
-const modes: { value: TrainerMode; label: string; description: string }[] = [
-  {
-    value: "learn",
-    label: "Learn",
-    description: "Learn new letters with guided demonstrations",
-  },
-  {
-    value: "practice",
-    label: "Practice",
-    description: "Quiz yourself on letters you've learned",
-  },
-  {
-    value: "mixed",
-    label: "Mixed",
-    description: "Learn new letters with occasional quizzes",
-  },
-];
-
 interface LearnedLettersProps {
   className?: string;
   isLoading?: boolean;
@@ -104,8 +85,6 @@ interface LearnedLettersProps {
 export function LearnedLetters({ className, isLoading = false }: LearnedLettersProps) {
   const { isAuthenticated } = useAuthStore();
   const learnedLetters = useGameStore((state) => state.learnedLetters);
-  const trainerMode = useGameStore((state) => state.trainerMode);
-  const setTrainerMode = useGameStore((state) => state.setTrainerMode);
 
   const sortedLetters = [...learnedLetters].sort((a, b) =>
     a.letter.localeCompare(b.letter),
@@ -116,27 +95,6 @@ export function LearnedLetters({ className, isLoading = false }: LearnedLettersP
 
   return (
     <div className={cn("w-full max-w-2xl mx-auto", className)}>
-      <div className="flex flex-col items-center mb-4">
-        <div className="inline-flex rounded-lg bg-muted p-1">
-          {modes.map((mode) => (
-            <button
-              key={mode.value}
-              onClick={() => setTrainerMode(mode.value)}
-              className={cn(
-                "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                trainerMode === mode.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-sm text-muted-foreground mt-2">
-          {modes.find((m) => m.value === trainerMode)?.description}
-        </p>
-      </div>
 
       {showLoading && (
         <>

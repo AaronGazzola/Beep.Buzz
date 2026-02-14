@@ -128,6 +128,13 @@ export type AudioSettings = {
   frequency: number;
 };
 
+export const SPEED_WPM: Record<"slow" | "medium" | "fast" | "fastest", number> = {
+  slow: 8,
+  medium: 14,
+  fast: 20,
+  fastest: 28,
+};
+
 export function playMorseAudio(
   morseCode: string,
   settings: AudioSettings = { volume: 0.5, wpm: 20, frequency: 600 }

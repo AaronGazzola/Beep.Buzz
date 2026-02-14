@@ -10,12 +10,11 @@ import {
   textToMorse,
   playMorseAudio,
   generateRandomCharacter,
+  SPEED_WPM,
 } from "@/lib/morse.utils";
 import { BeepCharacter, BuzzCharacter, SpeechBubble } from "./MorseCharacters";
 import type { Speaker } from "./MorseCharacters";
 
-const DOT_THRESHOLD = 200;
-const DEMO_WPM = 8;
 const QUIZ_CHANCE = 1 / 3;
 
 export function MorseTrainer({ className }: { className?: string }) {
@@ -31,6 +30,7 @@ export function MorseTrainer({ className }: { className?: string }) {
     quizMode,
     lastLearnedLetter,
     trainerMode,
+    morseSpeed,
     setStep,
     setChallenge,
     appendToUserInput,
@@ -50,6 +50,8 @@ export function MorseTrainer({ className }: { className?: string }) {
 
   const [displayedMorse, setDisplayedMorse] = useState("");
   const [isVocalizing, setIsVocalizing] = useState(false);
+
+  const dotThreshold = (1200 / SPEED_WPM[morseSpeed]) * 2;
 
   const pressStartRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -111,7 +113,7 @@ export function MorseTrainer({ className }: { className?: string }) {
     setDisplayedMorse("");
     setIsVocalizing(false);
 
-    const wpm = DEMO_WPM;
+    const wpm = SPEED_WPM[morseSpeed];
     const dotDuration = 1200 / wpm;
     const dashDuration = dotDuration * 3;
     const symbolGap = dotDuration;
@@ -168,7 +170,7 @@ export function MorseTrainer({ className }: { className?: string }) {
       setIsVocalizing(false);
       timeouts.forEach(clearTimeout);
     }
-  }, [isPlaying, currentMorse, setIsPlaying, quizMode]);
+  }, [isPlaying, currentMorse, setIsPlaying, quizMode, morseSpeed]);
 
   useEffect(() => {
     if (step === "demonstrate" && currentMorse && quizMode !== "letter-to-morse") {
@@ -290,7 +292,7 @@ export function MorseTrainer({ className }: { className?: string }) {
     setIsVocalizing(false);
 
     const pressDuration = Date.now() - pressStartRef.current;
-    const signal = pressDuration < DOT_THRESHOLD ? "." : "-";
+    const signal = pressDuration < dotThreshold ? "." : "-";
 
     appendToUserInput(signal);
     pressStartRef.current = null;
@@ -311,7 +313,7 @@ export function MorseTrainer({ className }: { className?: string }) {
 
     longPressTimerRef.current = setTimeout(() => {
       isLongPressRef.current = true;
-    }, DOT_THRESHOLD);
+    }, dotThreshold);
 
     pressStartRef.current = Date.now();
     setIsVocalizing(true);
@@ -348,7 +350,7 @@ export function MorseTrainer({ className }: { className?: string }) {
     setIsVocalizing(false);
 
     const pressDuration = Date.now() - pressStartRef.current;
-    const signal = pressDuration < DOT_THRESHOLD ? "." : "-";
+    const signal = pressDuration < dotThreshold ? "." : "-";
 
     appendToUserInput(signal);
     pressStartRef.current = null;
@@ -407,6 +409,7 @@ export function MorseTrainer({ className }: { className?: string }) {
         e.preventDefault();
         setStep("your-turn");
       } else if (step === "user-input") {
+        if (e.code !== "Space") return;
         e.preventDefault();
         handlePressStart();
       }
@@ -421,6 +424,7 @@ export function MorseTrainer({ className }: { className?: string }) {
       }
 
       if (step === "user-input") {
+        if (e.code !== "Space") return;
         e.preventDefault();
         handlePressEnd();
       }
@@ -643,7 +647,7 @@ export function MorseTrainer({ className }: { className?: string }) {
 
       return (
         <>
-          <div className="text-base font-semibold mb-3 opacity-90">Click or hit any key to tap morse</div>
+          <div className="text-base font-semibold mb-3 opacity-90">Click or press space bar to tap morse</div>
           <div className="text-4xl mb-3 font-bold">{currentChallenge}</div>
           <div className="text-5xl font-mono min-h-[3rem]">{userInput}</div>
         </>

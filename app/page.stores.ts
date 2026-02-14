@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage, MorseSpeed } from "./page.types";
 
 interface GameStore extends GameState {
@@ -43,7 +44,9 @@ interface GameStore extends GameState {
   setMorseSpeed: (speed: MorseSpeed) => void;
 }
 
-export const useGameStore = create<GameStore>()((set, get) => ({
+export const useGameStore = create<GameStore>()(
+  persist(
+    (set, get) => ({
       step: "ready",
       mode: "training",
       practiceType: "text-to-morse",
@@ -188,4 +191,15 @@ export const useGameStore = create<GameStore>()((set, get) => ({
     }),
   clearChatMessages: () => set({ chatMessages: [] }),
   setMorseSpeed: (speed) => set({ morseSpeed: speed }),
-}));
+    }),
+    {
+      name: "game-storage",
+      partialize: (state) => ({
+        learnedLetters: state.learnedLetters,
+        trainerMode: state.trainerMode,
+        interfaceMode: state.interfaceMode,
+        morseSpeed: state.morseSpeed,
+      }),
+    }
+  )
+);
