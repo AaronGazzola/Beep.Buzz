@@ -71,3 +71,10 @@ export interface MorseInputState {
   lastReleaseTime: number | null;
   currentSignals: string;
 }
+
+import type { Tables } from "@/supabase/types";
+
+export type Match = Tables<"matches">;
+export type MatchMessage = Tables<"match_messages">;
+export type Profile = Tables<"profiles">;
+export type MatchState = "searching" | "matched" | "chatting" | "ended" | "timeout";

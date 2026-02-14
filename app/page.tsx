@@ -2,6 +2,7 @@
 
 import { MorseTrainer } from "@/components/MorseTrainer";
 import { MorseChatAI } from "@/components/MorseChatAI";
+import { MorseChatUser } from "@/components/MorseChatUser";
 import { InlineSignUp } from "@/components/InlineSignUp";
 import { LearnedLetters } from "@/components/LearnedLetters";
 import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
@@ -15,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { InterfaceMode, MorseSpeed, TrainerMode } from "./page.types";
+import { useEffect } from "react";
 
 const interfaceModes: { value: InterfaceMode; label: string }[] = [
   { value: "training", label: "Training" },
@@ -53,7 +55,15 @@ export default function Home() {
   const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
   const { isAuthenticated } = useAuthStore();
-  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, trainerMode, setTrainerMode } = useGameStore();
+  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, trainerMode, setTrainerMode, clearChatMessages, clearMatchMessages } = useGameStore();
+
+  useEffect(() => {
+    if (interfaceMode === "chatPerson") {
+      clearChatMessages();
+    } else if (interfaceMode === "chatAI") {
+      clearMatchMessages();
+    }
+  }, [interfaceMode, clearChatMessages, clearMatchMessages]);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -99,13 +109,11 @@ export default function Home() {
                 <button
                   key={mode.value}
                   onClick={() => setInterfaceMode(mode.value)}
-                  disabled={mode.value === "chatPerson"}
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-md transition-colors",
                     interfaceMode === mode.value
                       ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                    mode.value === "chatPerson" && "opacity-50 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {mode.label}
@@ -160,6 +168,8 @@ export default function Home() {
               <MorseTrainer />
             ) : interfaceMode === "chatAI" ? (
               <MorseChatAI className="min-h-[20rem] max-h-[24rem] md:max-h-[28rem]" />
+            ) : interfaceMode === "chatPerson" ? (
+              <MorseChatUser className="min-h-[20rem] max-h-[24rem] md:max-h-[28rem]" />
             ) : null}
           </div>
         </div>
