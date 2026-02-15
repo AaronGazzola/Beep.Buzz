@@ -60,8 +60,8 @@ export async function saveLearnedLettersAction(
   return { success: true };
 }
 
-export async function createMatchAction(partnerId: string): Promise<Match> {
-  console.log("📝 [ACTION] createMatchAction called, partner:", partnerId.substring(0, 8));
+export async function createMatchAction(partnerId: string, matchId: string): Promise<Match> {
+  console.log("📝 [ACTION] createMatchAction called, partner:", partnerId.substring(0, 8), "matchId:", matchId.substring(0, 8));
 
   const supabase = await createClient();
   const {
@@ -74,11 +74,12 @@ export async function createMatchAction(partnerId: string): Promise<Match> {
     throw new Error("Unauthorized");
   }
 
-  console.log("📝 [ACTION] Auth OK, user:", user.id.substring(0, 8), "inserting match...");
+  console.log("📝 [ACTION] Auth OK, user:", user.id.substring(0, 8), "inserting match with ID...");
 
   const { data: newMatch, error } = await supabase
     .from("matches")
     .insert({
+      id: matchId,
       user_id: user.id,
       opponent_id: partnerId,
       status: "active",
@@ -95,7 +96,7 @@ export async function createMatchAction(partnerId: string): Promise<Match> {
   return newMatch;
 }
 
-export async function getCurrentMatchAction(): Promise<Match | null> {
+export async function getCurrentMatchAction(matchId?: string): Promise<Match | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -106,16 +107,16 @@ export async function getCurrentMatchAction(): Promise<Match | null> {
     return null;
   }
 
-  const fiveMinutesAgo = new Date(Date.now() - 300000).toISOString();
+  if (!matchId) {
+    return null;
+  }
 
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("matches")
     .select("*")
+    .eq("id", matchId)
     .or(`user_id.eq.${user.id},opponent_id.eq.${user.id}`)
     .in("status", ["pending", "active"])
-    .gte("created_at", fiveMinutesAgo)
-    .order("created_at", { ascending: false })
-    .limit(1)
     .single();
 
   return data || null;

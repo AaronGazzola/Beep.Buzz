@@ -135,9 +135,11 @@ export function useAIChat() {
 export function useMatchmakingPresence() {
   const { user } = useAuthStore();
   const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [sharedMatchId, setSharedMatchId] = useState<string | null>(null);
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
   const queryClient = useQueryClient();
   const partnerIdRef = useRef<string | null>(null);
+  const matchingInProgressRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -145,18 +147,30 @@ export function useMatchmakingPresence() {
     console.log("🎯 [MATCHMAKING] Joining queue, user:", user.id.substring(0, 8));
 
     const matchmakingChannel = supabase.channel("matchmaking:queue", {
-      config: { presence: { key: user.id } },
+      config: {
+        presence: { key: user.id },
+        broadcast: { self: false }
+      },
     });
 
     matchmakingChannel
+      .on("broadcast", { event: "match_created" }, ({ payload }) => {
+        console.log("📨 [MATCH ID RECEIVED] From:", payload.userId?.substring(0, 8), "Match ID:", payload.matchId?.substring(0, 8));
+        if (payload.userId === partnerIdRef.current && payload.matchId) {
+          console.log("✅ [MATCH ID] Confirmed, setting shared match ID:", payload.matchId.substring(0, 8));
+          setSharedMatchId(payload.matchId);
+          queryClient.invalidateQueries({ queryKey: ["currentMatch", payload.matchId] });
+        }
+      })
       .on("presence", { event: "sync" }, () => {
         const state = matchmakingChannel.presenceState();
         const users = Object.keys(state);
 
         console.log("👥 [PRESENCE SYNC] Users in queue:", users.length, users.map(id => id.substring(0, 8)));
         console.log("🔍 [PRESENCE SYNC] Current partner ref:", partnerIdRef.current?.substring(0, 8) || "none");
+        console.log("🔍 [PRESENCE SYNC] Matching in progress:", matchingInProgressRef.current);
 
-        if (users.length >= 2 && !partnerIdRef.current) {
+        if (users.length >= 2 && !partnerIdRef.current && !matchingInProgressRef.current) {
           const otherUsers = users.filter((id) => id !== user.id);
           console.log("🔍 [PAIRING CHECK] Other users:", otherUsers.map(id => id.substring(0, 8)));
 
@@ -166,24 +180,34 @@ export function useMatchmakingPresence() {
 
             partnerIdRef.current = partner;
             setPartnerId(partner);
+            matchingInProgressRef.current = true;
 
             const sortedIds = [user.id, partner].sort();
-            console.log("📋 [PAIRING] Sorted IDs:", sortedIds.map(id => id.substring(0, 8)));
-            console.log("📋 [PAIRING] My ID:", user.id.substring(0, 8), "Am I first?", sortedIds[0] === user.id);
+            console.log("📋 [PAIRING] My ID:", user.id.substring(0, 8), "Partner:", partner.substring(0, 8), "Am I first?", sortedIds[0] === user.id);
 
             if (sortedIds[0] === user.id) {
-              console.log("📝 [CREATING MATCH] I'm first, creating match...");
-              createMatchAction(partner).then((match) => {
+              const matchId = crypto.randomUUID();
+              console.log("🆔 [MATCH ID] Generated:", matchId.substring(0, 8));
+              console.log("📝 [CREATING MATCH] Creating match with ID:", matchId.substring(0, 8));
+
+              setSharedMatchId(matchId);
+
+              createMatchAction(partner, matchId).then((match) => {
                 console.log("✅ [MATCH CREATED]", match.id.substring(0, 8));
-                queryClient.setQueryData(["currentMatch"], match);
-                queryClient.invalidateQueries({ queryKey: ["currentMatch"] });
-                matchmakingChannel.untrack();
+                console.log("📤 [BROADCASTING] Sending match ID to partner");
+                matchmakingChannel.send({
+                  type: "broadcast",
+                  event: "match_created",
+                  payload: { userId: user.id, matchId: match.id },
+                });
+                queryClient.setQueryData(["currentMatch", matchId], match);
+                queryClient.invalidateQueries({ queryKey: ["currentMatch", matchId] });
               }).catch((error) => {
                 console.error("❌ [MATCH ERROR]", error);
+                matchingInProgressRef.current = false;
               });
             } else {
-              console.log("⏳ [WAITING] Partner will create match, leaving queue");
-              matchmakingChannel.untrack();
+              console.log("⏳ [WAITING] Partner will create match and broadcast ID");
             }
           }
         } else if (users.length >= 2) {
@@ -194,6 +218,13 @@ export function useMatchmakingPresence() {
       })
       .on("presence", { event: "leave" }, ({ key }) => {
         console.log("👋 [USER LEFT]", key.substring(0, 8));
+        if (key === partnerIdRef.current) {
+          console.log("💔 [PARTNER LEFT] Resetting partner state");
+          partnerIdRef.current = null;
+          setPartnerId(null);
+          setSharedMatchId(null);
+          matchingInProgressRef.current = false;
+        }
       })
       .subscribe(async (status) => {
         console.log("📡 [SUBSCRIPTION STATUS]", status);
@@ -212,17 +243,21 @@ export function useMatchmakingPresence() {
     };
   }, [user, queryClient]);
 
-  return { partnerId, channel };
+  return { partnerId, sharedMatchId, channel };
 }
 
-export function useCurrentMatch() {
+export function useCurrentMatch(matchId?: string | null) {
   const { user } = useAuthStore();
 
   return useQuery({
-    queryKey: ["currentMatch"],
+    queryKey: ["currentMatch", matchId],
     queryFn: async () => {
-      console.log("🔍 [QUERY] Fetching current match...");
-      const result = await getCurrentMatchAction();
+      if (!matchId) {
+        console.log("🔍 [QUERY] No match ID provided, skipping fetch");
+        return null;
+      }
+      console.log("🔍 [QUERY] Fetching match with ID:", matchId.substring(0, 8));
+      const result = await getCurrentMatchAction(matchId);
       console.log("📥 [QUERY] Current match result:", result ? {
         id: result.id.substring(0, 8),
         status: result.status,
@@ -231,7 +266,7 @@ export function useCurrentMatch() {
       } : "null");
       return result;
     },
-    enabled: !!user,
+    enabled: !!user && !!matchId,
     staleTime: 0,
     refetchInterval: 2000,
   });

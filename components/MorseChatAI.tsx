@@ -191,9 +191,14 @@ export function MorseChatAI({ className }: { className?: string }) {
   useEffect(() => {
     if (!hasInitialized.current && chatMessages.length === 0) {
       hasInitialized.current = true;
-      playAIResponse(".... .. / - .... . .-. .", "HI THERE");
+      addChatMessage({
+        speaker: "buzz",
+        morse: ".... .. / - .... . .-. .",
+        text: "HI THERE",
+        isComplete: true,
+      });
     }
-  }, [chatMessages.length, playAIResponse]);
+  }, [chatMessages.length, addChatMessage]);
 
   useEffect(() => {
     if (currentSpeaker === "beep" && userInput) {
@@ -514,7 +519,7 @@ export function MorseChatAI({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex flex-col h-full", className)}>
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"

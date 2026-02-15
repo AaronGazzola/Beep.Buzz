@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { InterfaceMode, MorseSpeed, TrainerMode } from "./page.types";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 const interfaceModes: { value: InterfaceMode; label: string }[] = [
   { value: "training", label: "Training" },
@@ -57,11 +57,16 @@ export default function Home() {
   const { isAuthenticated } = useAuthStore();
   const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, trainerMode, setTrainerMode, clearChatMessages, clearMatchMessages } = useGameStore();
 
+  const prevInterfaceModeRef = useRef<InterfaceMode>(interfaceMode);
+
   useEffect(() => {
-    if (interfaceMode === "chatPerson") {
-      clearChatMessages();
-    } else if (interfaceMode === "chatAI") {
-      clearMatchMessages();
+    if (prevInterfaceModeRef.current !== interfaceMode) {
+      if (interfaceMode === "chatPerson" && prevInterfaceModeRef.current === "chatAI") {
+        clearChatMessages();
+      } else if (interfaceMode === "chatAI" && prevInterfaceModeRef.current === "chatPerson") {
+        clearMatchMessages();
+      }
+      prevInterfaceModeRef.current = interfaceMode;
     }
   }, [interfaceMode, clearChatMessages, clearMatchMessages]);
 
@@ -162,14 +167,16 @@ export default function Home() {
           )}
 
           <div className={cn(
-            interfaceMode === "training" && "h-[44rem] md:h-[48rem] lg:h-64"
+            interfaceMode === "training" && "h-[44rem] md:h-[48rem] lg:h-64",
+            interfaceMode === "chatAI" && "h-[44rem] md:h-[48rem]",
+            interfaceMode === "chatPerson" && "h-[44rem] md:h-[48rem]"
           )}>
             {interfaceMode === "training" ? (
               <MorseTrainer />
             ) : interfaceMode === "chatAI" ? (
-              <MorseChatAI className="min-h-[20rem] max-h-[24rem] md:max-h-[28rem]" />
+              <MorseChatAI />
             ) : interfaceMode === "chatPerson" ? (
-              <MorseChatUser className="min-h-[20rem] max-h-[24rem] md:max-h-[28rem]" />
+              <MorseChatUser />
             ) : null}
           </div>
         </div>
