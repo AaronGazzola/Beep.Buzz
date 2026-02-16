@@ -80,6 +80,8 @@ export function MorseChatUser({ className }: { className?: string }) {
   const gainNodeRef = useRef<GainNode | null>(null);
   const pressStartRef = useRef<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const startBeepPromiseRef = useRef<Promise<void> | null>(null);
+  const shouldStopBeepRef = useRef(false);
 
   const characterGapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wordGapTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -121,13 +123,13 @@ export function MorseChatUser({ className }: { className?: string }) {
       messageEndTimerRef.current = null;
     }
 
-    const currentMorse = userInput;
+    const currentMorse = useGameStore.getState().userInput;
     if (!currentMorse || currentMorse.trim().length === 0) return;
 
     const finalText = morseToText(currentMorse);
     setMessageHistory(prev => [...prev, { speaker: "beep", morse: currentMorse, text: finalText }]);
     clearUserInput();
-  }, [userInput, clearUserInput]);
+  }, [clearUserInput]);
 
   const completePartnerMessage = useCallback(() => {
     if (partnerCharGapTimerRef.current) {
@@ -143,13 +145,13 @@ export function MorseChatUser({ className }: { className?: string }) {
       partnerMessageEndTimerRef.current = null;
     }
 
-    const currentMorse = partnerInput;
+    const currentMorse = useGameStore.getState().partnerInput;
     if (!currentMorse || currentMorse.trim().length === 0) return;
 
     const finalText = morseToText(currentMorse);
     setMessageHistory(prev => [...prev, { speaker: "buzz", morse: currentMorse, text: finalText }]);
     setPartnerInput("");
-  }, [partnerInput, setPartnerInput]);
+  }, [setPartnerInput]);
 
   useEffect(() => {
     if (!matchId || !user || !partnerId) {
@@ -236,6 +238,9 @@ export function MorseChatUser({ className }: { className?: string }) {
   }, []);
 
   const startBeep = useCallback(async () => {
+    console.log('[MORSE-USER] startBeep called');
+    shouldStopBeepRef.current = false;
+
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
     }
@@ -248,6 +253,11 @@ export function MorseChatUser({ className }: { className?: string }) {
       } catch (error) {
         return;
       }
+    }
+
+    if (shouldStopBeepRef.current) {
+      console.log('[MORSE-USER] startBeep - cancelled before oscillator created');
+      return;
     }
 
     const oscillator = audioContext.createOscillator();
@@ -265,9 +275,18 @@ export function MorseChatUser({ className }: { className?: string }) {
 
     oscillatorRef.current = oscillator;
     gainNodeRef.current = gainNode;
+    console.log('[MORSE-USER] startBeep - oscillator started');
+
+    if (shouldStopBeepRef.current) {
+      console.log('[MORSE-USER] startBeep - stopping immediately after creation');
+      stopBeep();
+    }
   }, []);
 
   const stopBeep = useCallback(() => {
+    console.log('[MORSE-USER] stopBeep called, oscillator exists:', !!oscillatorRef.current);
+    shouldStopBeepRef.current = true;
+
     if (oscillatorRef.current && gainNodeRef.current && audioContextRef.current) {
       const currentTime = audioContextRef.current.currentTime;
       gainNodeRef.current.gain.setValueAtTime(gainNodeRef.current.gain.value, currentTime);
@@ -277,13 +296,20 @@ export function MorseChatUser({ className }: { className?: string }) {
         oscillatorRef.current?.stop();
         oscillatorRef.current = null;
         gainNodeRef.current = null;
+        console.log('[MORSE-USER] stopBeep - oscillator stopped and cleared');
       }, 20);
+    } else {
+      console.log('[MORSE-USER] stopBeep - oscillator not yet created, flagged for cancellation');
     }
   }, []);
 
   const handlePressStart = useCallback(async () => {
+    console.log('[MORSE-USER] handlePressStart - isConnected:', isConnected, 'pressStartRef:', pressStartRef.current);
     if (!isConnected) return;
-    if (pressStartRef.current !== null) return;
+    if (pressStartRef.current !== null) {
+      console.log('[MORSE-USER] handlePressStart - already pressing, ignoring');
+      return;
+    }
 
     if (characterGapTimerRef.current) {
       clearTimeout(characterGapTimerRef.current);
@@ -299,18 +325,31 @@ export function MorseChatUser({ className }: { className?: string }) {
     }
 
     pressStartRef.current = Date.now();
+    console.log('[MORSE-USER] handlePressStart - press started at:', pressStartRef.current);
     setIsVocalizing(true);
-    await startBeep();
+    const beepPromise = startBeep();
+    startBeepPromiseRef.current = beepPromise;
+    await beepPromise;
   }, [isConnected, startBeep]);
 
-  const handlePressEnd = useCallback(() => {
-    if (pressStartRef.current === null) return;
+  const handlePressEnd = useCallback(async () => {
+    console.log('[MORSE-USER] handlePressEnd - pressStartRef:', pressStartRef.current);
+    if (pressStartRef.current === null) {
+      console.log('[MORSE-USER] handlePressEnd - no press start, ignoring');
+      return;
+    }
+
+    if (startBeepPromiseRef.current) {
+      await startBeepPromiseRef.current;
+      startBeepPromiseRef.current = null;
+    }
 
     stopBeep();
     setIsVocalizing(false);
 
     const pressDuration = Date.now() - pressStartRef.current;
     const signal = pressDuration < DOT_THRESHOLD ? "." : "-";
+    console.log('[MORSE-USER] handlePressEnd - duration:', pressDuration, 'ms, DOT_THRESHOLD:', DOT_THRESHOLD, 'ms, signal:', signal);
 
     appendToUserInput(signal);
     pressStartRef.current = null;
@@ -341,7 +380,7 @@ export function MorseChatUser({ className }: { className?: string }) {
         }, messageEnd);
       }, wordGap - charGap);
     }, charGap);
-  }, [appendToUserInput, stopBeep, channel, user, morseSpeed]);
+  }, [appendToUserInput, stopBeep, channel, user, morseSpeed, completeMyMessage]);
 
   useEffect(() => {
     const isInputFocused = () => {
@@ -439,7 +478,7 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   if (!user) {
     return (
-      <div className={cn("flex items-center justify-center h-full", className)}>
+      <div className={cn("flex items-center justify-center min-h-[20rem]", className)}>
         <p className="text-muted-foreground">Please sign in to connect</p>
       </div>
     );
@@ -447,7 +486,7 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   if (!isConnected) {
     return (
-      <div className={cn("flex items-center justify-center h-full", className)}>
+      <div className={cn("flex items-center justify-center min-h-[20rem]", className)}>
         <p className="text-muted-foreground">Searching for partner...</p>
       </div>
     );
@@ -459,10 +498,10 @@ export function MorseChatUser({ className }: { className?: string }) {
   const partnerText = morseToText(partnerMorse);
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col", className)}>
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
+        className="min-h-fit max-h-[calc(100vh-250px)] overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
         style={{
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',

@@ -140,6 +140,7 @@ export function useMatchmakingPresence() {
   const queryClient = useQueryClient();
   const partnerIdRef = useRef<string | null>(null);
   const matchingInProgressRef = useRef(false);
+  const matchIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -158,6 +159,7 @@ export function useMatchmakingPresence() {
         console.log("📨 [MATCH ID RECEIVED] From:", payload.userId?.substring(0, 8), "Match ID:", payload.matchId?.substring(0, 8));
         if (payload.userId === partnerIdRef.current && payload.matchId) {
           console.log("✅ [MATCH ID] Confirmed, setting shared match ID:", payload.matchId.substring(0, 8));
+          matchIdRef.current = payload.matchId;
           setSharedMatchId(payload.matchId);
           queryClient.invalidateQueries({ queryKey: ["currentMatch", payload.matchId] });
         }
@@ -190,8 +192,6 @@ export function useMatchmakingPresence() {
               console.log("🆔 [MATCH ID] Generated:", matchId.substring(0, 8));
               console.log("📝 [CREATING MATCH] Creating match with ID:", matchId.substring(0, 8));
 
-              setSharedMatchId(matchId);
-
               createMatchAction(partner, matchId).then((match) => {
                 console.log("✅ [MATCH CREATED]", match.id.substring(0, 8));
                 console.log("📤 [BROADCASTING] Sending match ID to partner");
@@ -200,6 +200,11 @@ export function useMatchmakingPresence() {
                   event: "match_created",
                   payload: { userId: user.id, matchId: match.id },
                 });
+
+                console.log("🔒 [SETTING MATCH ID] Setting match ID after broadcast");
+                matchIdRef.current = matchId;
+                setSharedMatchId(matchId);
+
                 queryClient.setQueryData(["currentMatch", matchId], match);
                 queryClient.invalidateQueries({ queryKey: ["currentMatch", matchId] });
               }).catch((error) => {
@@ -219,11 +224,15 @@ export function useMatchmakingPresence() {
       .on("presence", { event: "leave" }, ({ key }) => {
         console.log("👋 [USER LEFT]", key.substring(0, 8));
         if (key === partnerIdRef.current) {
-          console.log("💔 [PARTNER LEFT] Resetting partner state");
-          partnerIdRef.current = null;
-          setPartnerId(null);
-          setSharedMatchId(null);
-          matchingInProgressRef.current = false;
+          if (matchIdRef.current) {
+            console.log("🔒 [PARTNER LEFT] Match already established, ignoring leave from matchmaking queue");
+          } else {
+            console.log("💔 [PARTNER LEFT] Resetting partner state");
+            partnerIdRef.current = null;
+            setPartnerId(null);
+            setSharedMatchId(null);
+            matchingInProgressRef.current = false;
+          }
         }
       })
       .subscribe(async (status) => {

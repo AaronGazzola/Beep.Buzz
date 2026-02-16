@@ -60,14 +60,21 @@ export default function Home() {
   const prevInterfaceModeRef = useRef<InterfaceMode>(interfaceMode);
 
   useEffect(() => {
-    if (prevInterfaceModeRef.current !== interfaceMode) {
-      if (interfaceMode === "chatPerson" && prevInterfaceModeRef.current === "chatAI") {
-        clearChatMessages();
-      } else if (interfaceMode === "chatAI" && prevInterfaceModeRef.current === "chatPerson") {
-        clearMatchMessages();
-      }
-      prevInterfaceModeRef.current = interfaceMode;
+    const prevMode = prevInterfaceModeRef.current;
+
+    if (prevMode === "chatAI") {
+      clearChatMessages();
+    } else if (prevMode === "chatPerson") {
+      clearMatchMessages();
     }
+
+    if (interfaceMode === "chatAI") {
+      clearChatMessages();
+    } else if (interfaceMode === "chatPerson") {
+      clearMatchMessages();
+    }
+
+    prevInterfaceModeRef.current = interfaceMode;
   }, [interfaceMode, clearChatMessages, clearMatchMessages]);
 
   return (
@@ -167,16 +174,14 @@ export default function Home() {
           )}
 
           <div className={cn(
-            interfaceMode === "training" && "h-[44rem] md:h-[48rem] lg:h-64",
-            interfaceMode === "chatAI" && "h-[44rem] md:h-[48rem]",
-            interfaceMode === "chatPerson" && "h-[44rem] md:h-[48rem]"
+            interfaceMode === "training" && "h-[44rem] md:h-[48rem] lg:h-64"
           )}>
             {interfaceMode === "training" ? (
-              <MorseTrainer />
+              <MorseTrainer key="training" />
             ) : interfaceMode === "chatAI" ? (
-              <MorseChatAI />
+              <MorseChatAI key="chatAI" />
             ) : interfaceMode === "chatPerson" ? (
-              <MorseChatUser />
+              <MorseChatUser key="chatPerson" />
             ) : null}
           </div>
         </div>

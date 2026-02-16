@@ -97,6 +97,10 @@ export function MorseChatAI({ className }: { className?: string }) {
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const isLongPressRef = useRef(false);
+  const startBeepPromiseRef = useRef<Promise<void> | null>(null);
+  const shouldStopBeepRef = useRef(false);
+  const aiAudioContextRef = useRef<AudioContext | null>(null);
+  const isMountedRef = useRef(true);
 
   const hasInitialized = useRef(false);
 
@@ -128,9 +132,20 @@ export function MorseChatAI({ className }: { className?: string }) {
     });
 
     const audioCtx = new AudioContext();
+    aiAudioContextRef.current = audioCtx;
+
+    if (audioCtx.state === "suspended") {
+      try {
+        await audioCtx.resume();
+      } catch (error) {
+        console.error("Failed to resume audio context:", error);
+      }
+    }
+
     const symbols = morse.split("");
     let builtMorse = "";
     let builtText = "";
+    let shouldClose = true;
 
     const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
@@ -154,51 +169,75 @@ export function MorseChatAI({ className }: { className?: string }) {
       osc.stop(now + duration / 1000);
     };
 
-    for (let i = 0; i < symbols.length; i++) {
-      const symbol = symbols[i];
+    try {
+      for (let i = 0; i < symbols.length; i++) {
+        if (!isMountedRef.current) {
+          shouldClose = false;
+          return;
+        }
 
-      if (symbol === "." || symbol === "-") {
-        const beepDuration = symbol === "." ? durations.dot : durations.dash;
-        builtMorse += symbol;
-        setDisplayedAIMorse(builtMorse);
-        updateLastChatMessage(builtMorse, builtText, false);
-        setIsAIVocalizing(true);
-        playTone(beepDuration);
-        await wait(beepDuration);
+        const symbol = symbols[i];
+
+        if (symbol === "." || symbol === "-") {
+          const beepDuration = symbol === "." ? durations.dot : durations.dash;
+          builtMorse += symbol;
+          setDisplayedAIMorse(builtMorse);
+          updateLastChatMessage(builtMorse, builtText, false);
+          setIsAIVocalizing(true);
+          playTone(beepDuration);
+          await wait(beepDuration);
+          setIsAIVocalizing(false);
+          await wait(durations.symbolGap);
+        } else if (symbol === " ") {
+          builtMorse += " ";
+          builtText = morseToText(builtMorse);
+          setDisplayedAIMorse(builtMorse);
+          updateLastChatMessage(builtMorse, builtText, false);
+          await wait(durations.letterGap);
+        } else if (symbol === "/") {
+          builtMorse += " / ";
+          builtText = morseToText(builtMorse);
+          setDisplayedAIMorse(builtMorse);
+          updateLastChatMessage(builtMorse, builtText, false);
+          await wait(durations.letterGap * 2.3);
+        }
+      }
+
+      if (isMountedRef.current) {
+        updateLastChatMessage(morse, text, true);
+        setIsAITyping(false);
         setIsAIVocalizing(false);
-        await wait(durations.symbolGap);
-      } else if (symbol === " ") {
-        builtMorse += " ";
-        builtText = morseToText(builtMorse);
-        setDisplayedAIMorse(builtMorse);
-        updateLastChatMessage(builtMorse, builtText, false);
-        await wait(durations.letterGap);
-      } else if (symbol === "/") {
-        builtMorse += " / ";
-        builtText = morseToText(builtMorse);
-        setDisplayedAIMorse(builtMorse);
-        updateLastChatMessage(builtMorse, builtText, false);
-        await wait(durations.letterGap * 2.3);
+      }
+    } finally {
+      if (shouldClose && audioCtx.state !== 'closed') {
+        try {
+          await audioCtx.close();
+        } catch (e) {
+          console.error('Error closing audio context:', e);
+        }
+      }
+      if (aiAudioContextRef.current === audioCtx) {
+        aiAudioContextRef.current = null;
       }
     }
-
-    updateLastChatMessage(morse, text, true);
-    setIsAITyping(false);
-    setIsAIVocalizing(false);
-    audioCtx.close();
   }, [addChatMessage, updateLastChatMessage, morseSpeed]);
 
   useEffect(() => {
-    if (!hasInitialized.current && chatMessages.length === 0) {
+    if (chatMessages.length === 0) {
+      if (!hasInitialized.current) {
+        hasInitialized.current = true;
+        playAIResponse(".... .. / - .... . .-. .", "HI THERE");
+      }
+    } else {
       hasInitialized.current = true;
-      addChatMessage({
-        speaker: "buzz",
-        morse: ".... .. / - .... . .-. .",
-        text: "HI THERE",
-        isComplete: true,
-      });
     }
-  }, [chatMessages.length, addChatMessage]);
+  }, [chatMessages.length, playAIResponse]);
+
+  useEffect(() => {
+    if (chatMessages.length === 0) {
+      hasInitialized.current = false;
+    }
+  }, [chatMessages.length]);
 
   useEffect(() => {
     if (currentSpeaker === "beep" && userInput) {
@@ -220,6 +259,9 @@ export function MorseChatAI({ className }: { className?: string }) {
   }, [userInput, currentSpeaker, addChatMessage, updateLastChatMessage]);
 
   const startBeep = useCallback(async () => {
+    console.log('[MORSE] startBeep called');
+    shouldStopBeepRef.current = false;
+
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
     }
@@ -233,6 +275,11 @@ export function MorseChatAI({ className }: { className?: string }) {
         console.error("Failed to resume audio context:", error);
         return;
       }
+    }
+
+    if (shouldStopBeepRef.current) {
+      console.log('[MORSE] startBeep - cancelled before oscillator created');
+      return;
     }
 
     const oscillator = audioContext.createOscillator();
@@ -250,9 +297,18 @@ export function MorseChatAI({ className }: { className?: string }) {
 
     oscillatorRef.current = oscillator;
     gainNodeRef.current = gainNode;
+    console.log('[MORSE] startBeep - oscillator started');
+
+    if (shouldStopBeepRef.current) {
+      console.log('[MORSE] startBeep - stopping immediately after creation');
+      stopBeep();
+    }
   }, []);
 
   const stopBeep = useCallback(() => {
+    console.log('[MORSE] stopBeep called, oscillator exists:', !!oscillatorRef.current);
+    shouldStopBeepRef.current = true;
+
     if (oscillatorRef.current && gainNodeRef.current && audioContextRef.current) {
       const currentTime = audioContextRef.current.currentTime;
       gainNodeRef.current.gain.setValueAtTime(gainNodeRef.current.gain.value, currentTime);
@@ -262,13 +318,20 @@ export function MorseChatAI({ className }: { className?: string }) {
         oscillatorRef.current?.stop();
         oscillatorRef.current = null;
         gainNodeRef.current = null;
+        console.log('[MORSE] stopBeep - oscillator stopped and cleared');
       }, 20);
+    } else {
+      console.log('[MORSE] stopBeep - oscillator not yet created, flagged for cancellation');
     }
   }, []);
 
   const handlePressStart = useCallback(async () => {
+    console.log('[MORSE] handlePressStart - currentSpeaker:', currentSpeaker, 'isAITyping:', isAITyping, 'pressStartRef:', pressStartRef.current);
     if (currentSpeaker !== "beep" || isAITyping) return;
-    if (pressStartRef.current !== null) return;
+    if (pressStartRef.current !== null) {
+      console.log('[MORSE] handlePressStart - already pressing, ignoring');
+      return;
+    }
 
     if (characterGapTimerRef.current) {
       clearTimeout(characterGapTimerRef.current);
@@ -284,8 +347,11 @@ export function MorseChatAI({ className }: { className?: string }) {
     }
 
     pressStartRef.current = Date.now();
+    console.log('[MORSE] handlePressStart - press started at:', pressStartRef.current);
     setIsVocalizing(true);
-    await startBeep();
+    const beepPromise = startBeep();
+    startBeepPromiseRef.current = beepPromise;
+    await beepPromise;
   }, [currentSpeaker, isAITyping, startBeep]);
 
   const completeMessage = useCallback(() => {
@@ -323,14 +389,24 @@ export function MorseChatAI({ className }: { className?: string }) {
     }, 500);
   }, [clearUserInput, updateLastChatMessage, playAIResponse]);
 
-  const handlePressEnd = useCallback(() => {
-    if (pressStartRef.current === null) return;
+  const handlePressEnd = useCallback(async () => {
+    console.log('[MORSE] handlePressEnd - pressStartRef:', pressStartRef.current);
+    if (pressStartRef.current === null) {
+      console.log('[MORSE] handlePressEnd - no press start, ignoring');
+      return;
+    }
+
+    if (startBeepPromiseRef.current) {
+      await startBeepPromiseRef.current;
+      startBeepPromiseRef.current = null;
+    }
 
     stopBeep();
     setIsVocalizing(false);
 
     const pressDuration = Date.now() - pressStartRef.current;
     const signal = pressDuration < dotThreshold ? "." : "-";
+    console.log('[MORSE] handlePressEnd - duration:', pressDuration, 'ms, dotThreshold:', dotThreshold, 'ms, signal:', signal);
 
     appendToUserInput(signal);
     pressStartRef.current = null;
@@ -518,11 +594,26 @@ export function MorseChatAI({ className }: { className?: string }) {
     e.preventDefault();
   }, []);
 
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (aiAudioContextRef.current && aiAudioContextRef.current.state !== 'closed') {
+        aiAudioContextRef.current.close().catch(() => {});
+        aiAudioContextRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
+
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col", className)}>
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
+        className="min-h-fit max-h-[calc(100vh-250px)] overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
         style={{
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',
