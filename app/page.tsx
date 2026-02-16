@@ -90,32 +90,34 @@ export default function Home() {
 
         <div className="max-w-4xl mx-auto mb-8">
           <div className="mb-6 flex justify-center items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
-                  <Info className="w-5 h-5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Morse Code Input Guide</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Press space bar to tap morse
-                  </p>
-                  <div className="space-y-1 pt-2">
+            {(interfaceMode === "chatAI" || interfaceMode === "chatPerson") && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
+                    <Info className="w-5 h-5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Morse Code Input Guide</h4>
                     <p className="text-sm text-muted-foreground">
-                      3 dit lengths = space between characters in words
+                      Press space bar to tap morse
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      7 dit lengths = space between words
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      14 dit lengths = end of message
-                    </p>
+                    <div className="space-y-1 pt-2">
+                      <p className="text-sm text-muted-foreground">
+                        3 dit lengths = space between characters in words
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        7 dit lengths = space between words
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        14 dit lengths = end of message
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            )}
             <div className="inline-flex rounded-lg bg-muted p-1">
               {interfaceModes.map((mode) => (
                 <button

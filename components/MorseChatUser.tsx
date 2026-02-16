@@ -9,6 +9,8 @@ import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
 import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const DOT_THRESHOLD = 200;
 
@@ -98,10 +100,12 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   useEffect(() => {
     if (isConnected && matchmakingChannel) {
-      console.log("🎉 [CONNECTED] Match established, leaving matchmaking queue");
+      console.error("[USER CHAT CONNECTION] ✅ CONNECTED! Match established - partnerId:", partnerId, "matchId:", matchId);
       matchmakingChannel.untrack();
+    } else {
+      console.error("[USER CHAT CONNECTION] ⏳ Waiting for connection - partnerId:", partnerId, "matchId:", matchId, "isConnected:", isConnected);
     }
-  }, [isConnected, matchmakingChannel]);
+  }, [isConnected, matchmakingChannel, partnerId, matchId]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -155,16 +159,20 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   useEffect(() => {
     if (!matchId || !user || !partnerId) {
+      console.error("[USER CHAT MORSE CHANNEL] Missing requirements - matchId:", matchId, "user:", !!user, "partnerId:", partnerId, "Need all three to establish connection");
       return;
     }
 
+    console.error("[USER CHAT MORSE CHANNEL] ✅ All requirements met! Setting up channel - matchId:", matchId, "partnerId:", partnerId);
     const tapChannel = supabase.channel(`match:${matchId}:morse`, {
       config: { broadcast: { self: false } },
     });
 
     tapChannel
       .on("broadcast", { event: "signal" }, ({ payload }) => {
+        console.error("[USER CHAT MORSE RECEIVED] Signal:", payload.signal, "from userId:", payload.userId, "expected partnerId:", partnerId);
         if (payload.userId === partnerId) {
+          console.error("[USER CHAT MORSE RECEIVED] Valid partner signal, processing");
           if (partnerCharGapTimerRef.current) {
             clearTimeout(partnerCharGapTimerRef.current);
             partnerCharGapTimerRef.current = null;
@@ -201,9 +209,13 @@ export function MorseChatUser({ className }: { className?: string }) {
               }, messageEnd);
             }, wordGap - charGap);
           }, charGap);
+        } else {
+          console.error("[USER CHAT MORSE RECEIVED] Ignoring signal from non-partner userId:", payload.userId);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.error("[USER CHAT MORSE CHANNEL] Subscription status:", status);
+      });
 
     setChannel(tapChannel);
 
@@ -238,7 +250,6 @@ export function MorseChatUser({ className }: { className?: string }) {
   }, []);
 
   const startBeep = useCallback(async () => {
-    console.log('[MORSE-USER] startBeep called');
     shouldStopBeepRef.current = false;
 
     if (!audioContextRef.current) {
@@ -256,7 +267,6 @@ export function MorseChatUser({ className }: { className?: string }) {
     }
 
     if (shouldStopBeepRef.current) {
-      console.log('[MORSE-USER] startBeep - cancelled before oscillator created');
       return;
     }
 
@@ -275,16 +285,13 @@ export function MorseChatUser({ className }: { className?: string }) {
 
     oscillatorRef.current = oscillator;
     gainNodeRef.current = gainNode;
-    console.log('[MORSE-USER] startBeep - oscillator started');
 
     if (shouldStopBeepRef.current) {
-      console.log('[MORSE-USER] startBeep - stopping immediately after creation');
       stopBeep();
     }
   }, []);
 
   const stopBeep = useCallback(() => {
-    console.log('[MORSE-USER] stopBeep called, oscillator exists:', !!oscillatorRef.current);
     shouldStopBeepRef.current = true;
 
     if (oscillatorRef.current && gainNodeRef.current && audioContextRef.current) {
@@ -296,18 +303,13 @@ export function MorseChatUser({ className }: { className?: string }) {
         oscillatorRef.current?.stop();
         oscillatorRef.current = null;
         gainNodeRef.current = null;
-        console.log('[MORSE-USER] stopBeep - oscillator stopped and cleared');
       }, 20);
-    } else {
-      console.log('[MORSE-USER] stopBeep - oscillator not yet created, flagged for cancellation');
     }
   }, []);
 
   const handlePressStart = useCallback(async () => {
-    console.log('[MORSE-USER] handlePressStart - isConnected:', isConnected, 'pressStartRef:', pressStartRef.current);
     if (!isConnected) return;
     if (pressStartRef.current !== null) {
-      console.log('[MORSE-USER] handlePressStart - already pressing, ignoring');
       return;
     }
 
@@ -325,7 +327,6 @@ export function MorseChatUser({ className }: { className?: string }) {
     }
 
     pressStartRef.current = Date.now();
-    console.log('[MORSE-USER] handlePressStart - press started at:', pressStartRef.current);
     setIsVocalizing(true);
     const beepPromise = startBeep();
     startBeepPromiseRef.current = beepPromise;
@@ -333,9 +334,7 @@ export function MorseChatUser({ className }: { className?: string }) {
   }, [isConnected, startBeep]);
 
   const handlePressEnd = useCallback(async () => {
-    console.log('[MORSE-USER] handlePressEnd - pressStartRef:', pressStartRef.current);
     if (pressStartRef.current === null) {
-      console.log('[MORSE-USER] handlePressEnd - no press start, ignoring');
       return;
     }
 
@@ -349,17 +348,19 @@ export function MorseChatUser({ className }: { className?: string }) {
 
     const pressDuration = Date.now() - pressStartRef.current;
     const signal = pressDuration < DOT_THRESHOLD ? "." : "-";
-    console.log('[MORSE-USER] handlePressEnd - duration:', pressDuration, 'ms, DOT_THRESHOLD:', DOT_THRESHOLD, 'ms, signal:', signal);
 
     appendToUserInput(signal);
     pressStartRef.current = null;
 
     if (channel && user) {
+      console.error("[USER CHAT MORSE SEND] Sending signal:", signal, "userId:", user.id, "channel exists:", !!channel);
       channel.send({
         type: "broadcast",
         event: "signal",
         payload: { userId: user.id, signal },
       });
+    } else {
+      console.error("[USER CHAT MORSE SEND] Cannot send - channel:", !!channel, "user:", !!user);
     }
 
     const ditDuration = 1200 / SPEED_WPM[morseSpeed];
@@ -478,8 +479,11 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   if (!user) {
     return (
-      <div className={cn("flex items-center justify-center min-h-[20rem]", className)}>
-        <p className="text-muted-foreground">Please sign in to connect</p>
+      <div className={cn("flex flex-col items-center justify-center gap-4 min-h-[20rem]", className)}>
+        <p className="text-muted-foreground">Sign in to tap Morse code with other users</p>
+        <Button asChild>
+          <Link href="/sign-up">Sign Up</Link>
+        </Button>
       </div>
     );
   }
@@ -540,23 +544,6 @@ export function MorseChatUser({ className }: { className?: string }) {
             isVocalizing={isPartnerVocalizing}
           />
         )}
-      </div>
-
-      <div className="border-t bg-background p-6">
-        <div className="text-center space-y-2">
-          <p className="text-base font-medium text-foreground">
-            Click anywhere or hit spacebar to tap morse
-          </p>
-          <p className="text-sm text-muted-foreground">
-            3 dit lengths = space between characters
-          </p>
-          <p className="text-sm text-muted-foreground">
-            7 dit lengths = space between words
-          </p>
-          <p className="text-sm text-muted-foreground">
-            14 dit lengths = end of message
-          </p>
-        </div>
       </div>
     </div>
   );

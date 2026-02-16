@@ -26,13 +26,6 @@ function useInlineSignUp() {
       email: string;
       password: string;
     }) => {
-      console.log("[InlineSignUp] Starting sign up for:", email);
-      console.log(
-        "[InlineSignUp] Redirect URL:",
-        `${window.location.origin}/`,
-      );
-      console.log("[InlineSignUp] Learned letters to save:", learnedLetters);
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -45,9 +38,6 @@ function useInlineSignUp() {
         },
       });
 
-      console.log("[InlineSignUp] Response data:", data);
-      console.log("[InlineSignUp] Response error:", error);
-
       if (error) {
         console.error("[InlineSignUp] Error during sign up:", error);
         if (error.message.includes("already registered")) {
@@ -55,18 +45,6 @@ function useInlineSignUp() {
         }
         throw new Error(error.message);
       }
-
-      console.log("[InlineSignUp] User created:", data.user?.id);
-      console.log("[InlineSignUp] User email:", data.user?.email);
-      console.log(
-        "[InlineSignUp] Email confirmed at:",
-        data.user?.email_confirmed_at,
-      );
-      console.log(
-        "[InlineSignUp] Confirmation sent at:",
-        data.user?.confirmation_sent_at,
-      );
-      console.log("[InlineSignUp] User metadata:", data.user?.user_metadata);
 
       return data;
     },

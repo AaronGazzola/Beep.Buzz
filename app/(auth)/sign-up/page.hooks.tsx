@@ -15,9 +15,6 @@ export function useEmailSignUp() {
       email: string;
       password: string;
     }) => {
-      console.log("[SignUp] Starting email sign up for:", email);
-      console.log("[SignUp] Redirect URL:", `${window.location.origin}/welcome`);
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -26,9 +23,6 @@ export function useEmailSignUp() {
         },
       });
 
-      console.log("[SignUp] Response data:", data);
-      console.log("[SignUp] Response error:", error);
-
       if (error) {
         console.error("[SignUp] Error during sign up:", error);
         if (error.message.includes("already registered")) {
@@ -36,11 +30,6 @@ export function useEmailSignUp() {
         }
         throw new Error(error.message);
       }
-
-      console.log("[SignUp] User created:", data.user?.id);
-      console.log("[SignUp] User email:", data.user?.email);
-      console.log("[SignUp] Email confirmed at:", data.user?.email_confirmed_at);
-      console.log("[SignUp] Confirmation sent at:", data.user?.confirmation_sent_at);
 
       return data;
     },
@@ -61,9 +50,6 @@ export function useMagicLinkSignUp() {
 
   return useMutation({
     mutationFn: async ({ email }: { email: string }) => {
-      console.log("[MagicLink] Starting magic link sign up for:", email);
-      console.log("[MagicLink] Redirect URL:", `${window.location.origin}/welcome`);
-
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -71,15 +57,11 @@ export function useMagicLinkSignUp() {
         },
       });
 
-      console.log("[MagicLink] Response data:", data);
-      console.log("[MagicLink] Response error:", error);
-
       if (error) {
         console.error("[MagicLink] Error sending magic link:", error);
         throw new Error("Failed to send magic link");
       }
 
-      console.log("[MagicLink] Magic link sent successfully");
       return { success: true };
     },
     onSuccess: () => {
