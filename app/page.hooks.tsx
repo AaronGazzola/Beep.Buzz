@@ -14,6 +14,7 @@ import {
   getMatchMessagesAction,
   getProfileByUsernameAction,
   getCurrentUserProfileAction,
+  reportUserAction,
 } from "./page.actions";
 import { supabase } from "@/supabase/browser-client";
 import type { ChatMessage, LearnedLetter, Match, MatchMessage } from "./page.types";
@@ -335,10 +336,7 @@ export function useSendMatchMessage() {
 }
 
 export function useMatchMessages(matchId: string | undefined) {
-  const { user } = useAuthStore();
-  const { setMatchMessages } = useGameStore();
-
-  const query = useQuery({
+  return useQuery({
     queryKey: ["matchMessages", matchId],
     queryFn: async () => {
       if (!matchId) return [];
@@ -347,21 +345,6 @@ export function useMatchMessages(matchId: string | undefined) {
     },
     enabled: !!matchId,
   });
-
-  useEffect(() => {
-    if (query.data && user) {
-      const chatMessages: ChatMessage[] = query.data.map((msg) => ({
-        speaker: msg.user_id === user.id ? "beep" : "buzz",
-        morse: msg.morse_code,
-        text: msg.message,
-        isComplete: true,
-      }));
-
-      setMatchMessages(chatMessages);
-    }
-  }, [query.data, setMatchMessages, user]);
-
-  return query;
 }
 
 export function useRealtimeMatchMessages(matchId: string | undefined) {
@@ -487,5 +470,19 @@ export function useProfileByUserId(userId: string | null) {
       return data;
     },
     enabled: !!userId,
+  });
+}
+
+export function useReportUser() {
+  return useMutation({
+    mutationFn: ({
+      reportedUserId,
+      matchId,
+      reason,
+    }: {
+      reportedUserId: string;
+      matchId: string | null;
+      reason: string | null;
+    }) => reportUserAction(reportedUserId, matchId, reason),
   });
 }

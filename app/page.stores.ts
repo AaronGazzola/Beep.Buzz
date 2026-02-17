@@ -42,8 +42,6 @@ interface GameStore extends GameState {
   updateLastChatMessage: (morse: string, text: string, isComplete: boolean) => void;
   clearChatMessages: () => void;
   setMorseSpeed: (speed: MorseSpeed) => void;
-  setMatchMessages: (messages: ChatMessage[]) => void;
-  clearMatchMessages: () => void;
   setPartnerInput: (input: string) => void;
   appendToPartnerInput: (signal: string) => void;
   partnerInput: string;
@@ -197,8 +195,6 @@ export const useGameStore = create<GameStore>()(
     }),
   clearChatMessages: () => set({ chatMessages: [] }),
   setMorseSpeed: (speed) => set({ morseSpeed: speed }),
-  setMatchMessages: (messages) => set({ chatMessages: messages }),
-  clearMatchMessages: () => set({ chatMessages: [], partnerInput: "" }),
   setPartnerInput: (input) => set({ partnerInput: input }),
   appendToPartnerInput: (signal) =>
     set((state) => ({ partnerInput: state.partnerInput + signal })),

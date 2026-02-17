@@ -2,7 +2,6 @@
 
 import { MorseTrainer } from "@/components/MorseTrainer";
 import { MorseChatAI } from "@/components/MorseChatAI";
-import { MorseChatUser } from "@/components/MorseChatUser";
 import { InlineSignUp } from "@/components/InlineSignUp";
 import { LearnedLetters } from "@/components/LearnedLetters";
 import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
@@ -21,7 +20,6 @@ import { useEffect, useRef } from "react";
 const interfaceModes: { value: InterfaceMode; label: string }[] = [
   { value: "training", label: "Training" },
   { value: "chatAI", label: "AI Chat" },
-  { value: "chatPerson", label: "User Chat" },
 ];
 
 const trainerModes: { value: TrainerMode; label: string; description: string }[] = [
@@ -55,7 +53,7 @@ export default function Home() {
   const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
   const { isAuthenticated } = useAuthStore();
-  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, trainerMode, setTrainerMode, clearChatMessages, clearMatchMessages } = useGameStore();
+  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, trainerMode, setTrainerMode, clearChatMessages } = useGameStore();
 
   const prevInterfaceModeRef = useRef<InterfaceMode>(interfaceMode);
 
@@ -64,18 +62,14 @@ export default function Home() {
 
     if (prevMode === "chatAI") {
       clearChatMessages();
-    } else if (prevMode === "chatPerson") {
-      clearMatchMessages();
     }
 
     if (interfaceMode === "chatAI") {
       clearChatMessages();
-    } else if (interfaceMode === "chatPerson") {
-      clearMatchMessages();
     }
 
     prevInterfaceModeRef.current = interfaceMode;
-  }, [interfaceMode, clearChatMessages, clearMatchMessages]);
+  }, [interfaceMode, clearChatMessages]);
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -90,7 +84,7 @@ export default function Home() {
 
         <div className="max-w-4xl mx-auto mb-8">
           <div className="mb-6 flex justify-center items-center gap-2">
-            {(interfaceMode === "chatAI" || interfaceMode === "chatPerson") && (
+            {interfaceMode === "chatAI" && (
               <Popover>
                 <PopoverTrigger asChild>
                   <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
@@ -182,8 +176,6 @@ export default function Home() {
               <MorseTrainer key="training" />
             ) : interfaceMode === "chatAI" ? (
               <MorseChatAI key="chatAI" />
-            ) : interfaceMode === "chatPerson" ? (
-              <MorseChatUser key="chatPerson" />
             ) : null}
           </div>
         </div>

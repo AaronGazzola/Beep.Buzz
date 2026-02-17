@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut } from "lucide-react";
+import { LogOut, MessageSquare, Trash2 } from "lucide-react";
 
 export function Header() {
   const { user, profile, isAuthenticated } = useAuthStore();
@@ -36,6 +36,12 @@ export function Header() {
           </Link>
 
           <div className="flex items-center gap-4">
+            {isAuthenticated && (
+              <Link href="/chat" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <MessageSquare className="h-4 w-4" />
+                Chat
+              </Link>
+            )}
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -60,6 +66,12 @@ export function Header() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="cursor-pointer text-destructive focus:text-destructive">
+                    <Link href="/account/delete">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Account
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleSignOut}
                     className="cursor-pointer text-destructive focus:text-destructive"

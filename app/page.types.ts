@@ -12,7 +12,7 @@ export type QuizMode = "letter-to-morse" | "morse-to-letter" | null;
 
 export type TrainerMode = "learn" | "practice" | "mixed";
 
-export type InterfaceMode = "training" | "chatAI" | "chatPerson";
+export type InterfaceMode = "training" | "chatAI";
 
 export type MorseSpeed = "slow" | "medium" | "fast" | "fastest";
 

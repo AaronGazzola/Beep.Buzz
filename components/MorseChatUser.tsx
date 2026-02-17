@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/app/layout.stores";
-import { useMatchmakingPresence, useCurrentMatch, useCurrentUserProfile, useProfileByUserId } from "@/app/page.hooks";
+import { useMatchmakingPresence, useCurrentMatch, useCurrentUserProfile, useProfileByUserId, useReportUser } from "@/app/page.hooks";
 import { useGameStore } from "@/app/page.stores";
 import { supabase } from "@/supabase/browser-client";
 import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
@@ -12,6 +12,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Flag } from "lucide-react";
 import Link from "next/link";
 
 const DOT_THRESHOLD = 200;
@@ -107,6 +108,10 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   const currentUserProfile = useCurrentUserProfile();
   const partnerProfile = useProfileByUserId(partnerId);
+  const reportUser = useReportUser();
+  const [showReportPanel, setShowReportPanel] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportSubmitted, setReportSubmitted] = useState(false);
 
   const isConnected = !!partnerId && !!matchId;
 
@@ -491,56 +496,60 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   if (!user) {
     return (
-      <div className={cn("flex flex-col items-center justify-center gap-4 min-h-[20rem]", className)}>
-        <p className="text-muted-foreground">Sign in to tap Morse code with other users</p>
-        <Button asChild>
-          <Link href="/sign-up">Sign Up</Link>
-        </Button>
+      <div className={cn("flex flex-col", className)}>
+        <div className="min-h-fit max-h-[calc(100vh-250px)] overflow-y-auto px-4 py-6 flex flex-col items-center justify-center gap-4">
+          <p className="text-muted-foreground">Sign in to tap Morse code with other users</p>
+          <Button asChild>
+            <Link href="/sign-up">Sign Up</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className={cn("flex flex-col items-center justify-center gap-6 min-h-[20rem] p-6", className)}>
-        <p className="text-muted-foreground mb-4">Find a partner to chat</p>
+      <div className={cn("flex flex-col", className)}>
+        <div className="min-h-fit max-h-[calc(100vh-250px)] overflow-y-auto px-4 py-6 flex flex-col items-center justify-center gap-6">
+          <p className="text-muted-foreground mb-4">Find a partner to chat</p>
 
-        <div className="w-full max-w-sm space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="target-username">Match with specific user</Label>
-            <Input
-              id="target-username"
-              type="text"
-              placeholder="Enter username"
-              value={targetUsername}
-              onChange={(e) => setTargetUsername(e.target.value.toLowerCase())}
-            />
-          </div>
-
-          <Button
-            className="w-full"
-            onClick={() => setMatchMode("username")}
-            disabled={!targetUsername || targetUsername.length < 3}
-          >
-            Match with {targetUsername || "Username"}
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+          <div className="w-full max-w-sm space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="target-username">Match with specific user</Label>
+              <Input
+                id="target-username"
+                type="text"
+                placeholder="Enter username"
+                value={targetUsername}
+                onChange={(e) => setTargetUsername(e.target.value.toLowerCase())}
+              />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
-            </div>
-          </div>
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => setMatchMode("random")}
-          >
-            Random Match
-          </Button>
+            <Button
+              className="w-full"
+              onClick={() => setMatchMode("username")}
+              disabled={!targetUsername || targetUsername.length < 3}
+            >
+              Match with {targetUsername || "Username"}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setMatchMode("random")}
+            >
+              Random Match
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -551,8 +560,85 @@ export function MorseChatUser({ className }: { className?: string }) {
   const partnerMorse = partnerInput;
   const partnerText = morseToText(partnerMorse);
 
+  const handleReportSubmit = () => {
+    if (!partnerId) return;
+    reportUser.mutate(
+      { reportedUserId: partnerId, matchId: matchId ?? null, reason: reportReason || null },
+      {
+        onSuccess: () => {
+          setReportSubmitted(true);
+          setShowReportPanel(false);
+          setReportReason("");
+        },
+      }
+    );
+  };
+
   return (
     <div className={cn("flex flex-col", className)}>
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <span className="text-sm text-muted-foreground">
+          Chatting with{" "}
+          <span className="font-medium text-foreground">
+            {partnerProfile.data?.username || "partner"}
+          </span>
+        </span>
+        <div className="flex items-center gap-2">
+          {reportSubmitted && (
+            <span className="text-xs text-muted-foreground">Report submitted</span>
+          )}
+          {!reportSubmitted && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-muted-foreground hover:text-destructive"
+              onClick={() => setShowReportPanel((v) => !v)}
+            >
+              <Flag className="h-3.5 w-3.5 mr-1" />
+              Report
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {showReportPanel && (
+        <div className="mx-4 mb-2 p-3 border border-destructive/30 rounded-lg bg-destructive/5 space-y-2">
+          <p className="text-sm font-medium text-destructive">
+            Report {partnerProfile.data?.username || "this user"}
+          </p>
+          <select
+            className="w-full text-sm border rounded px-2 py-1.5 bg-background"
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+          >
+            <option value="">Select a reason (optional)</option>
+            <option value="Harassment">Harassment</option>
+            <option value="Spam">Spam</option>
+            <option value="Inappropriate content">Inappropriate content</option>
+            <option value="Other">Other</option>
+          </select>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowReportPanel(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="flex-1"
+              onClick={handleReportSubmit}
+              disabled={reportUser.isPending}
+            >
+              Submit Report
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div
         ref={scrollContainerRef}
         className="min-h-fit max-h-[calc(100vh-250px)] overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"

@@ -56,6 +56,14 @@ export function Footer() {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/cookies"
+                  className="hover:text-foreground transition-colors"
+                >
+                  Cookie Policy
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -64,6 +72,12 @@ export function Footer() {
           <p>&copy; {currentYear} Beep.Buzz. All rights reserved.</p>
         </div>
       </div>
+      <Link
+        href="/about"
+        className="block w-full bg-yellow-100 text-orange-800 text-center text-sm font-medium py-2 hover:bg-yellow-200 transition-colors"
+      >
+        beta preview
+      </Link>
     </footer>
   );
 }

@@ -223,6 +223,32 @@ export async function getProfileByUsernameAction(
   return data;
 }
 
+export async function reportUserAction(
+  reportedUserId: string,
+  matchId: string | null,
+  reason: string | null
+): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) throw new Error("Unauthorized");
+
+  const { error } = await supabase.from("user_reports").insert({
+    reporter_id: user.id,
+    reported_user_id: reportedUserId,
+    match_id: matchId,
+    reason,
+  });
+
+  if (error) {
+    console.error("[reportUserAction]", error);
+    throw new Error("Failed to submit report");
+  }
+}
+
 export async function getCurrentUserProfileAction(): Promise<Profile | null> {
   const supabase = await createClient();
   const {

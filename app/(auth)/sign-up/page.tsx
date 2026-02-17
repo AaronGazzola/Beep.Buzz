@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Mail, Check, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const signUp = useEmailSignUp();
   const sendMagicLink = useMagicLinkSignUp();
@@ -44,7 +46,7 @@ export default function SignUpPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!passwordStrong || !isUsernameValid) {
+    if (!passwordStrong || !isUsernameValid || !ageConfirmed) {
       return;
     }
 
@@ -155,10 +157,33 @@ export default function SignUpPage() {
               )}
             </div>
 
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="age-confirm"
+                checked={ageConfirmed}
+                onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
+              />
+              <label htmlFor="age-confirm" className="text-sm text-muted-foreground cursor-pointer">
+                I am 16 years of age or older
+              </label>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              By creating an account, you agree to our{" "}
+              <Link href="/terms" className="underline hover:text-foreground">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="underline hover:text-foreground">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+
             <Button
               type="submit"
               className="w-full"
-              disabled={signUp.isPending || !passwordStrong || !isUsernameValid || !username}
+              disabled={signUp.isPending || !passwordStrong || !isUsernameValid || !username || !ageConfirmed}
             >
               {signUp.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

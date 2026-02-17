@@ -149,6 +149,33 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          morse_code: string
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          morse_code: string
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          morse_code?: string
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       game_sessions: {
         Row: {
           correct_challenges: number
@@ -448,6 +475,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_reports: {
+        Row: {
+          created_at: string | null
+          id: string
+          match_id: string | null
+          reason: string | null
+          reported_user_id: string
+          reporter_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          match_id?: string | null
+          reason?: string | null
+          reported_user_id: string
+          reporter_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          match_id?: string | null
+          reason?: string | null
+          reported_user_id?: string
+          reporter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reports_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
