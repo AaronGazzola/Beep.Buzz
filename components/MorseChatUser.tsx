@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/app/layout.stores";
-import { useMatchmakingPresence, useCurrentMatch } from "@/app/page.hooks";
+import { useMatchmakingPresence, useCurrentMatch, useCurrentUserProfile, useProfileByUserId } from "@/app/page.hooks";
 import { useGameStore } from "@/app/page.stores";
 import { supabase } from "@/supabase/browser-client";
 import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
 const DOT_THRESHOLD = 200;
@@ -19,9 +21,10 @@ interface ChatBubbleProps {
   morse: string;
   text: string;
   isVocalizing?: boolean;
+  username?: string | null;
 }
 
-function ChatBubble({ speaker, morse, text, isVocalizing }: ChatBubbleProps) {
+function ChatBubble({ speaker, morse, text, isVocalizing, username }: ChatBubbleProps) {
   const isBeep = speaker === "beep";
   const bubbleColor = isBeep ? "bg-chart-3" : "bg-accent-foreground";
   const alignment = isBeep ? "self-start" : "self-end";
@@ -44,11 +47,13 @@ function ChatBubble({ speaker, morse, text, isVocalizing }: ChatBubbleProps) {
           "text-sm font-semibold",
           isBeep ? "text-chart-3" : "text-accent-foreground"
         )}>
-          {isBeep ? "Beep" : "Buzz"}
+          {username || (isBeep ? "Beep" : "Buzz")}
         </span>
-        <span className="text-xs text-muted-foreground">
-          {isBeep ? "(You)" : "(Partner)"}
-        </span>
+        {!username && (
+          <span className="text-xs text-muted-foreground">
+            {isBeep ? "(You)" : "(Partner)"}
+          </span>
+        )}
       </div>
       <div className={cn("rounded-3xl px-6 py-4 text-white relative", bubbleColor, pointerStyle)}>
         <div className="font-mono text-2xl mb-2 min-h-[2rem] break-all">
@@ -77,6 +82,8 @@ export function MorseChatUser({ className }: { className?: string }) {
   const [isPartnerVocalizing, setIsPartnerVocalizing] = useState(false);
   const [messageHistory, setMessageHistory] = useState<Message[]>([]);
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  const [targetUsername, setTargetUsername] = useState("");
+  const [matchMode, setMatchMode] = useState<"random" | "username">("random");
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -92,9 +99,14 @@ export function MorseChatUser({ className }: { className?: string }) {
   const partnerWordGapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const partnerMessageEndTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { partnerId, sharedMatchId, channel: matchmakingChannel } = useMatchmakingPresence();
+  const { partnerId, sharedMatchId, channel: matchmakingChannel } = useMatchmakingPresence(
+    matchMode === "username" ? targetUsername : undefined
+  );
   const currentMatch = useCurrentMatch(sharedMatchId);
   const matchId = sharedMatchId;
+
+  const currentUserProfile = useCurrentUserProfile();
+  const partnerProfile = useProfileByUserId(partnerId);
 
   const isConnected = !!partnerId && !!matchId;
 
@@ -490,8 +502,46 @@ export function MorseChatUser({ className }: { className?: string }) {
 
   if (!isConnected) {
     return (
-      <div className={cn("flex items-center justify-center min-h-[20rem]", className)}>
-        <p className="text-muted-foreground">Searching for partner...</p>
+      <div className={cn("flex flex-col items-center justify-center gap-6 min-h-[20rem] p-6", className)}>
+        <p className="text-muted-foreground mb-4">Find a partner to chat</p>
+
+        <div className="w-full max-w-sm space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="target-username">Match with specific user</Label>
+            <Input
+              id="target-username"
+              type="text"
+              placeholder="Enter username"
+              value={targetUsername}
+              onChange={(e) => setTargetUsername(e.target.value.toLowerCase())}
+            />
+          </div>
+
+          <Button
+            className="w-full"
+            onClick={() => setMatchMode("username")}
+            disabled={!targetUsername || targetUsername.length < 3}
+          >
+            Match with {targetUsername || "Username"}
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setMatchMode("random")}
+          >
+            Random Match
+          </Button>
+        </div>
       </div>
     );
   }
@@ -526,6 +576,11 @@ export function MorseChatUser({ className }: { className?: string }) {
             morse={message.morse}
             text={message.text}
             isVocalizing={false}
+            username={
+              message.speaker === "beep"
+                ? currentUserProfile.data?.username
+                : partnerProfile.data?.username
+            }
           />
         ))}
         {myMorse && (
@@ -534,6 +589,7 @@ export function MorseChatUser({ className }: { className?: string }) {
             morse={myMorse}
             text={myText}
             isVocalizing={isVocalizing}
+            username={currentUserProfile.data?.username}
           />
         )}
         {partnerMorse && (
@@ -542,6 +598,7 @@ export function MorseChatUser({ className }: { className?: string }) {
             morse={partnerMorse}
             text={partnerText}
             isVocalizing={isPartnerVocalizing}
+            username={partnerProfile.data?.username}
           />
         )}
       </div>

@@ -203,3 +203,47 @@ export async function getMatchMessagesAction(
 
   return data;
 }
+
+export async function getProfileByUsernameAction(
+  username: string
+): Promise<Profile | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .ilike("username", username)
+    .single();
+
+  if (error) {
+    console.error("[getProfileByUsernameAction]", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function getCurrentUserProfileAction(): Promise<Profile | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("[getCurrentUserProfileAction]", error);
+    return null;
+  }
+
+  return data;
+}

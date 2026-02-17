@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEmailSignUp, useMagicLinkSignUp } from "./page.hooks";
+import { useEmailSignUp, useMagicLinkSignUp, useUsernameAvailability } from "./page.hooks";
 import { useAuthStore } from "@/app/layout.stores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +24,16 @@ export default function SignUpPage() {
   const { isAuthenticated } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const signUp = useEmailSignUp();
   const sendMagicLink = useMagicLinkSignUp();
+  const usernameCheck = useUsernameAvailability(username);
 
   const passwordStrong = password.length >= 8;
+  const isUsernameValid = usernameCheck.data?.available === true;
+  const isCheckingUsername = usernameCheck.isFetching && username.length >= 3;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -40,11 +44,11 @@ export default function SignUpPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!passwordStrong) {
+    if (!passwordStrong || !isUsernameValid) {
       return;
     }
 
-    signUp.mutate({ email, password });
+    signUp.mutate({ email, password, username });
   };
 
   const handleMagicLink = () => {
@@ -73,6 +77,41 @@ export default function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                required
+                pattern="[a-zA-Z0-9_-]{3,20}"
+              />
+              {username.length >= 3 && (
+                <div className="flex items-center gap-2 text-sm">
+                  {isCheckingUsername ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-muted-foreground">Checking...</span>
+                    </>
+                  ) : isUsernameValid ? (
+                    <>
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500">Available</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="h-4 w-4" />
+                      <span className="text-destructive">
+                        {usernameCheck.data?.error || "Not available"}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -119,7 +158,7 @@ export default function SignUpPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={signUp.isPending || !passwordStrong}
+              disabled={signUp.isPending || !passwordStrong || !isUsernameValid || !username}
             >
               {signUp.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

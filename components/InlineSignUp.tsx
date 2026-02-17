@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useUsernameAvailability } from "@/app/(auth)/sign-up/page.hooks";
 
 function useInlineSignUp() {
   const router = useRouter();
@@ -22,9 +23,11 @@ function useInlineSignUp() {
     mutationFn: async ({
       email,
       password,
+      username,
     }: {
       email: string;
       password: string;
+      username: string;
     }) => {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -34,6 +37,7 @@ function useInlineSignUp() {
           data: {
             pending_learned_letters:
               learnedLetters.length > 0 ? learnedLetters : undefined,
+            username,
           },
         },
       });
@@ -68,20 +72,24 @@ interface InlineSignUpProps {
 export function InlineSignUp({ className }: InlineSignUpProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const signUp = useInlineSignUp();
+  const usernameCheck = useUsernameAvailability(username);
 
   const passwordStrong = password.length >= 8;
+  const isUsernameValid = usernameCheck.data?.available === true;
+  const isCheckingUsername = usernameCheck.isFetching && username.length >= 3;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!passwordStrong) {
+    if (!passwordStrong || !isUsernameValid) {
       return;
     }
 
-    signUp.mutate({ email, password });
+    signUp.mutate({ email, password, username });
   };
 
   return (
@@ -112,6 +120,41 @@ export function InlineSignUp({ className }: InlineSignUpProps) {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="inline-username">Username</Label>
+          <Input
+            id="inline-username"
+            type="text"
+            placeholder="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase())}
+            required
+            pattern="[a-zA-Z0-9_-]{3,20}"
+          />
+          {username.length >= 3 && (
+            <div className="flex items-center gap-2 text-sm">
+              {isCheckingUsername ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-muted-foreground">Checking...</span>
+                </>
+              ) : isUsernameValid ? (
+                <>
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span className="text-green-500">Available</span>
+                </>
+              ) : (
+                <>
+                  <span className="h-4 w-4" />
+                  <span className="text-destructive">
+                    {usernameCheck.data?.error || "Not available"}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -158,7 +201,7 @@ export function InlineSignUp({ className }: InlineSignUpProps) {
         <Button
           type="submit"
           className="w-full"
-          disabled={signUp.isPending || !passwordStrong}
+          disabled={signUp.isPending || !passwordStrong || !isUsernameValid || !username}
         >
           {signUp.isPending && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

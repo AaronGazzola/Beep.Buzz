@@ -1,7 +1,9 @@
 import { supabase } from "@/supabase/browser-client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { checkUsernameAvailableAction } from "./page.actions";
 
 export function useEmailSignUp() {
   const router = useRouter();
@@ -11,15 +13,20 @@ export function useEmailSignUp() {
     mutationFn: async ({
       email,
       password,
+      username,
     }: {
       email: string;
       password: string;
+      username: string;
     }) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/welcome`,
+          data: {
+            username,
+          },
         },
       });
 
@@ -72,5 +79,30 @@ export function useMagicLinkSignUp() {
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to send magic link");
     },
+  });
+}
+
+export function useUsernameAvailability(username: string) {
+  const [debouncedUsername, setDebouncedUsername] = useState(username);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedUsername(username);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username]);
+
+  return useQuery({
+    queryKey: ["username-availability", debouncedUsername],
+    queryFn: async () => {
+      if (!debouncedUsername || debouncedUsername.length < 3) {
+        return { available: false, error: "Too short" };
+      }
+      return checkUsernameAvailableAction(debouncedUsername);
+    },
+    enabled: debouncedUsername.length >= 3,
+    staleTime: 0,
+    gcTime: 0,
   });
 }

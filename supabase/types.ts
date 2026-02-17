@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       achievements: {
@@ -329,6 +354,7 @@ export type Database = {
           skill_rating: number
           updated_at: string
           user_id: string
+          username: string | null
           visual_settings: Json
         }
         Insert: {
@@ -343,6 +369,7 @@ export type Database = {
           skill_rating?: number
           updated_at?: string
           user_id: string
+          username?: string | null
           visual_settings?: Json
         }
         Update: {
@@ -357,6 +384,7 @@ export type Database = {
           skill_rating?: number
           updated_at?: string
           user_id?: string
+          username?: string | null
           visual_settings?: Json
         }
         Relationships: []
@@ -564,6 +592,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       achievement_type: ["skill", "progress", "special"],

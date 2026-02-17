@@ -12,6 +12,8 @@ import {
   getPartnerProfileAction,
   sendMatchMessageAction,
   getMatchMessagesAction,
+  getProfileByUsernameAction,
+  getCurrentUserProfileAction,
 } from "./page.actions";
 import { supabase } from "@/supabase/browser-client";
 import type { ChatMessage, LearnedLetter, Match, MatchMessage } from "./page.types";
@@ -131,7 +133,7 @@ export function useAIChat() {
   });
 }
 
-export function useMatchmakingPresence() {
+export function useMatchmakingPresence(targetUsername?: string) {
   const { user } = useAuthStore();
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [sharedMatchId, setSharedMatchId] = useState<string | null>(null);
@@ -147,9 +149,13 @@ export function useMatchmakingPresence() {
       return;
     }
 
-    console.error("[MATCHMAKING] Joining queue, user:", user.id);
+    const channelName = targetUsername
+      ? `matchmaking:targeted:${targetUsername}`
+      : "matchmaking:queue";
 
-    const matchmakingChannel = supabase.channel("matchmaking:queue", {
+    console.error("[MATCHMAKING] Joining queue:", channelName, "user:", user.id);
+
+    const matchmakingChannel = supabase.channel(channelName, {
       config: {
         presence: { key: user.id },
         broadcast: { self: false }
@@ -166,14 +172,27 @@ export function useMatchmakingPresence() {
           queryClient.invalidateQueries({ queryKey: ["currentMatch", payload.matchId] });
         }
       })
-      .on("presence", { event: "sync" }, () => {
+      .on("presence", { event: "sync" }, async () => {
         const state = matchmakingChannel.presenceState();
         const users = Object.keys(state);
 
         console.error("[MATCHMAKING] Users in queue:", users.length, "Current partner ref:", partnerIdRef.current, "Matching in progress:", matchingInProgressRef.current);
 
         if (users.length >= 2 && !partnerIdRef.current && !matchingInProgressRef.current) {
-          const otherUsers = users.filter((id) => id !== user.id);
+          let otherUsers = users.filter((id) => id !== user.id);
+
+          if (targetUsername) {
+            console.error("[MATCHMAKING] Filtering for username:", targetUsername);
+            const filteredUsers = [];
+            for (const userId of otherUsers) {
+              const profile = await getProfileByUsernameAction(targetUsername);
+              if (profile && profile.user_id === userId) {
+                filteredUsers.push(userId);
+              }
+            }
+            otherUsers = filteredUsers;
+          }
+
           console.error("[MATCHMAKING] ✅ PARTNER AVAILABLE! Other users found:", otherUsers.length);
 
           if (otherUsers.length > 0) {
@@ -250,7 +269,7 @@ export function useMatchmakingPresence() {
       matchmakingChannel.untrack();
       supabase.removeChannel(matchmakingChannel);
     };
-  }, [user, queryClient]);
+  }, [user, queryClient, targetUsername]);
 
   return { partnerId, sharedMatchId, channel };
 }
@@ -446,4 +465,27 @@ export function useRealtimeMorseSignals(
   );
 
   return { broadcastSignal };
+}
+
+export function useCurrentUserProfile() {
+  return useQuery({
+    queryKey: ["currentUserProfile"],
+    queryFn: getCurrentUserProfileAction,
+  });
+}
+
+export function useProfileByUserId(userId: string | null) {
+  return useQuery({
+    queryKey: ["profileByUserId", userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+      return data;
+    },
+    enabled: !!userId,
+  });
 }
