@@ -9,7 +9,7 @@ Rules:
 - Actually read and respond to what the user says. If they ask a question, answer it. If they share something, react to the specific thing they said. Do NOT give generic encouragement.
 - Have a real conversation. Respond with substance relevant to the users message.
 - One short thought per response. No sentences joined together.
-- Never start your response with HI THERE. You already greeted them.
+- Never start your response with HI THERE.
 
 Example valid responses: THAT SOUNDS REALLY FUN, I LIKE PIZZA TOO, MAYBE TRY AGAIN LATER, THE ANSWER IS 42`;
 
@@ -39,12 +39,9 @@ async function fetchCompletion(apiKey: string, messages: { role: string; content
   }
 
   const data: ChatCompletionResponse = await response.json();
-  const rawText = data.choices?.[0]?.message?.content
+  return data.choices?.[0]?.message?.content
     || data.choices?.[0]?.text
     || "";
-
-  console.error("[AI Chat] Raw text:", JSON.stringify(rawText));
-  return rawText;
 }
 
 function sanitize(text: string): string {
@@ -56,7 +53,7 @@ function sanitize(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
 
   if (!apiKey) {
     console.error("OPENROUTER_API_KEY is not configured");
@@ -67,7 +64,6 @@ export async function POST(request: NextRequest) {
 
   const fullMessages = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "assistant", content: "HI THERE" },
     ...messages,
   ];
 

@@ -1,28 +1,21 @@
 "use client";
 
-import { MorseTrainer } from "@/components/MorseTrainer";
-import { MorseChatAI } from "@/components/MorseChatAI";
 import { InlineSignUp } from "@/components/InlineSignUp";
 import { LearnedLetters } from "@/components/LearnedLetters";
-import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
-import { useAuthStore } from "./layout.stores";
-import { useGameStore } from "./page.stores";
-import { Turtle, Rabbit, Bike, Rocket, Info } from "lucide-react";
+import { MorseTrainer } from "@/components/MorseTrainer";
 import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import type { InterfaceMode, MorseSpeed, TrainerMode } from "./page.types";
-import { useEffect, useRef } from "react";
+import { MessagesSquare } from "lucide-react";
+import Link from "next/link";
+import { useAuthStore } from "./layout.stores";
+import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
+import { useGameStore } from "./page.stores";
+import type { TrainerMode } from "./page.types";
 
-const interfaceModes: { value: InterfaceMode; label: string }[] = [
-  { value: "training", label: "Training" },
-  { value: "chatAI", label: "AI Chat" },
-];
-
-const trainerModes: { value: TrainerMode; label: string; description: string }[] = [
+const trainerModes: {
+  value: TrainerMode;
+  label: string;
+  description: string;
+}[] = [
   {
     value: "learn",
     label: "Learn",
@@ -40,36 +33,11 @@ const trainerModes: { value: TrainerMode; label: string; description: string }[]
   },
 ];
 
-const speedCycle: MorseSpeed[] = ["slow", "medium", "fast", "fastest"];
-
-const speedIcons: Record<MorseSpeed, typeof Turtle> = {
-  slow: Turtle,
-  medium: Rabbit,
-  fast: Bike,
-  fastest: Rocket,
-};
-
 export default function Home() {
   const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
   const { isAuthenticated } = useAuthStore();
-  const { interfaceMode, setInterfaceMode, morseSpeed, setMorseSpeed, trainerMode, setTrainerMode, clearChatMessages } = useGameStore();
-
-  const prevInterfaceModeRef = useRef<InterfaceMode>(interfaceMode);
-
-  useEffect(() => {
-    const prevMode = prevInterfaceModeRef.current;
-
-    if (prevMode === "chatAI") {
-      clearChatMessages();
-    }
-
-    if (interfaceMode === "chatAI") {
-      clearChatMessages();
-    }
-
-    prevInterfaceModeRef.current = interfaceMode;
-  }, [interfaceMode, clearChatMessages]);
+  const { trainerMode, setTrainerMode } = useGameStore();
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -79,108 +47,56 @@ export default function Home() {
           <span className="block text-primary">Beep & Buzz</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          Master Morse code through interactive training, practice challenges, and competitive gameplay
+          Learn Morse code and chat with friends
         </p>
 
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="mb-6 flex justify-center items-center gap-2">
-            {interfaceMode === "chatAI" && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
-                    <Info className="w-5 h-5" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Morse Code Input Guide</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Press space bar to tap morse
-                    </p>
-                    <div className="space-y-1 pt-2">
-                      <p className="text-sm text-muted-foreground">
-                        3 dit lengths = space between characters in words
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        7 dit lengths = space between words
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        14 dit lengths = end of message
-                      </p>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
+          <div className="h-[44rem] md:h-[48rem] lg:h-64">
+            <MorseTrainer key="training" />
+          </div>
+
+          <div className="mt-6 flex flex-col items-center">
             <div className="inline-flex rounded-lg bg-muted p-1">
-              {interfaceModes.map((mode) => (
+              {trainerModes.map((mode) => (
                 <button
                   key={mode.value}
-                  onClick={() => setInterfaceMode(mode.value)}
+                  onClick={() => setTrainerMode(mode.value)}
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                    interfaceMode === mode.value
+                    trainerMode === mode.value
                       ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {mode.label}
                 </button>
               ))}
             </div>
-            {(() => {
-              const SpeedIcon = speedIcons[morseSpeed];
-              return (
-                <button
-                  onClick={() => {
-                    const currentIndex = speedCycle.indexOf(morseSpeed);
-                    const nextIndex = (currentIndex + 1) % speedCycle.length;
-                    setMorseSpeed(speedCycle[nextIndex]);
-                  }}
-                  className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <SpeedIcon className="w-5 h-5" />
-                </button>
-              );
-            })()}
-          </div>
-
-          {interfaceMode === "training" && (
-            <div className="mb-6 flex flex-col items-center">
-              <div className="inline-flex rounded-lg bg-muted p-1">
-                {trainerModes.map((mode) => (
-                  <button
-                    key={mode.value}
-                    onClick={() => setTrainerMode(mode.value)}
-                    className={cn(
-                      "px-4 py-2 text-sm font-medium rounded-md transition-colors",
-                      trainerMode === mode.value
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {trainerModes.find((m) => m.value === trainerMode)?.description}
-              </p>
-            </div>
-          )}
-
-          <div className={cn(
-            interfaceMode === "training" && "h-[44rem] md:h-[48rem] lg:h-64"
-          )}>
-            {interfaceMode === "training" ? (
-              <MorseTrainer key="training" />
-            ) : interfaceMode === "chatAI" ? (
-              <MorseChatAI key="chatAI" />
-            ) : null}
+            <p className="text-sm text-muted-foreground mt-2">
+              {trainerModes.find((m) => m.value === trainerMode)?.description}
+            </p>
           </div>
         </div>
 
-        <LearnedLetters className="mb-8" isLoading={learnedLettersQuery.isPending} />
+        <LearnedLetters
+          className="mb-8"
+          isLoading={learnedLettersQuery.isPending}
+        />
+
+        <div className="mb-8 flex flex-col items-center gap-4">
+          <div>
+            <p className="text-lg text-muted-foreground">Ready to test your skills?</p>
+            <p className="text-lg text-muted-foreground">Tap Morse code with an AI or with real users!</p>
+          </div>
+          <Link
+            href="/chat"
+            className="inline-flex items-center gap-2.5 rounded-lg border px-10 py-3.5 text-base font-semibold text-white hover:opacity-90 transition-opacity"
+            style={{ borderColor: "var(--color-chart-4)", backgroundColor: "var(--color-chart-4)" }}
+          >
+            <MessagesSquare className="h-5 w-5" strokeWidth={2.5} />
+            Live chat in Morse code
+          </Link>
+        </div>
 
         {!isAuthenticated && <InlineSignUp className="mb-8" />}
       </section>

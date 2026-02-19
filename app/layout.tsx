@@ -44,7 +44,7 @@ export default function RootLayout({
         <Providers>
           <AuthInitializer />
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 flex flex-col min-h-0 min-h-[calc(100svh-4rem)]">{children}</main>
           <Footer />
           <Toaster />
         </Providers>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/app/layout.stores";
 import { useProfileByUserId } from "@/app/page.hooks";
@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function ContactList() {
@@ -87,7 +87,10 @@ function MatchmakingSection() {
   }
 
   return (
-    <div className="px-4 py-3">
+    <div className="flex flex-col gap-2 px-4 py-3">
+      <Button asChild variant="outline" size="sm" className="w-full">
+        <Link href="/chat">Chat with AI</Link>
+      </Button>
       <Button
         variant="default"
         size="sm"
@@ -134,7 +137,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         <SidebarHeader className="border-b">
           <div className="flex items-center justify-between px-2 py-1">
             <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
+              <MessagesSquare className="h-5 w-5" />
               <span className="font-semibold">Chat</span>
             </div>
             <SidebarTrigger className={cn("lg:hidden")} />

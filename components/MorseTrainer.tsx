@@ -572,7 +572,7 @@ export function MorseTrainer({ className }: { className?: string }) {
         <>
           Ready to learn Morse code?
           <br />
-          <span className="text-xl font-semibold text-accent-foreground">Click here or press any key to start</span>
+          <span className="text-xl font-semibold text-accent-foreground">Click here or press space to start</span>
         </>
       );
     }
@@ -583,7 +583,7 @@ export function MorseTrainer({ className }: { className?: string }) {
           <>
             <div className="text-base font-semibold mb-3 opacity-90">What letter is this?</div>
             <div className="text-4xl mb-3 font-bold">?</div>
-            <div className="text-base opacity-90">Click or press any key when ready</div>
+            <div className="text-base opacity-90">Click or press space when ready</div>
           </>
         );
       }
@@ -593,14 +593,14 @@ export function MorseTrainer({ className }: { className?: string }) {
           <>
             <div className="text-base font-semibold mb-3 opacity-90">Tap the morse for this letter</div>
             <div className="text-4xl mb-3 font-bold">{currentChallenge}</div>
-            <div className="text-base opacity-90">Click or press any key when ready</div>
+            <div className="text-base opacity-90">Click or press space when ready</div>
           </>
         );
       }
 
       return (
         <>
-          <div className="text-base font-semibold mb-3 opacity-90">Click or hit any key to continue</div>
+          <div className="text-base font-semibold mb-3 opacity-90">Click or press space to continue</div>
           <div className="text-4xl mb-3 font-bold">{currentChallenge}</div>
           <div className="text-5xl font-mono min-h-[3rem]">{displayedMorse || "\u00A0"}</div>
         </>

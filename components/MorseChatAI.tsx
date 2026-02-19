@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useGameStore } from "@/app/page.stores";
 import { morseToText, textToMorse, SPEED_WPM } from "@/lib/morse.utils";
@@ -73,6 +73,7 @@ export function MorseChatAI({ className }: { className?: string }) {
     clearUserInput,
     addChatMessage,
     updateLastChatMessage,
+    clearChatMessages,
     morseSpeed,
   } = useGameStore();
 
@@ -85,7 +86,6 @@ export function MorseChatAI({ className }: { className?: string }) {
   const [isVocalizing, setIsVocalizing] = useState(false);
   const [isAITyping, setIsAITyping] = useState(false);
   const [isAIVocalizing, setIsAIVocalizing] = useState(false);
-  const [displayedAIMorse, setDisplayedAIMorse] = useState("");
   const pressStartRef = useRef<number | null>(null);
   const characterGapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wordGapTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -102,16 +102,18 @@ export function MorseChatAI({ className }: { className?: string }) {
   const aiAudioContextRef = useRef<AudioContext | null>(null);
   const isMountedRef = useRef(true);
 
-  const hasInitialized = useRef(false);
-
   const currentSpeaker: Speaker = (() => {
-    if (chatMessages.length === 0) return "buzz";
+    if (chatMessages.length === 0) return "beep";
     const lastMessage = chatMessages[chatMessages.length - 1];
     if (!lastMessage.isComplete) {
       return lastMessage.speaker;
     }
     return lastMessage.speaker === "buzz" ? "beep" : "buzz";
   })();
+
+  useLayoutEffect(() => {
+    clearChatMessages();
+  }, [clearChatMessages]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -122,7 +124,6 @@ export function MorseChatAI({ className }: { className?: string }) {
   const playAIResponse = useCallback(async (morse: string, text: string) => {
     setIsAITyping(true);
     setIsAIVocalizing(false);
-    setDisplayedAIMorse("");
 
     addChatMessage({
       speaker: "buzz",
@@ -180,7 +181,6 @@ export function MorseChatAI({ className }: { className?: string }) {
         if (symbol === "." || symbol === "-") {
           const beepDuration = symbol === "." ? durations.dot : durations.dash;
           builtMorse += symbol;
-          setDisplayedAIMorse(builtMorse);
           updateLastChatMessage(builtMorse, builtText, false);
           setIsAIVocalizing(true);
           playTone(beepDuration);
@@ -190,13 +190,11 @@ export function MorseChatAI({ className }: { className?: string }) {
         } else if (symbol === " ") {
           builtMorse += " ";
           builtText = morseToText(builtMorse);
-          setDisplayedAIMorse(builtMorse);
           updateLastChatMessage(builtMorse, builtText, false);
           await wait(durations.letterGap);
         } else if (symbol === "/") {
           builtMorse += " / ";
           builtText = morseToText(builtMorse);
-          setDisplayedAIMorse(builtMorse);
           updateLastChatMessage(builtMorse, builtText, false);
           await wait(durations.letterGap * 2.3);
         }
@@ -219,23 +217,6 @@ export function MorseChatAI({ className }: { className?: string }) {
       }
     }
   }, [addChatMessage, updateLastChatMessage, morseSpeed]);
-
-  useEffect(() => {
-    if (chatMessages.length === 0) {
-      if (!hasInitialized.current) {
-        hasInitialized.current = true;
-        playAIResponse(".... .. / - .... . .-. .", "HI THERE");
-      }
-    } else {
-      hasInitialized.current = true;
-    }
-  }, [chatMessages.length, playAIResponse]);
-
-  useEffect(() => {
-    if (chatMessages.length === 0) {
-      hasInitialized.current = false;
-    }
-  }, [chatMessages.length]);
 
   useEffect(() => {
     if (currentSpeaker === "beep" && userInput) {
@@ -593,45 +574,66 @@ export function MorseChatAI({ className }: { className?: string }) {
   }, []);
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div
+      className={cn("flex flex-1 flex-col min-h-0 cursor-pointer", className)}
+      style={{
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        touchAction: 'none',
+      }}
+      onTouchStart={handleContainerTouchStart}
+      onTouchMove={handleContainerTouchMove}
+      onTouchEnd={handleContainerTouchEnd}
+      onTouchCancel={handleContainerTouchCancel}
+      onMouseDown={handleContainerMouseDown}
+      onMouseUp={handleContainerMouseUp}
+      onMouseLeave={handleContainerMouseLeave}
+      onContextMenu={handleContextMenu}
+    >
       <div
         ref={scrollContainerRef}
-        className="min-h-fit max-h-[calc(100vh-250px)] overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
-        style={{
-          WebkitTouchCallout: 'none',
-          WebkitUserSelect: 'none',
-          userSelect: 'none',
-          touchAction: 'none',
-        }}
-        onTouchStart={handleContainerTouchStart}
-        onTouchMove={handleContainerTouchMove}
-        onTouchEnd={handleContainerTouchEnd}
-        onTouchCancel={handleContainerTouchCancel}
-        onMouseDown={handleContainerMouseDown}
-        onMouseUp={handleContainerMouseUp}
-        onMouseLeave={handleContainerMouseLeave}
-        onContextMenu={handleContextMenu}
+        className="flex-1 overflow-y-auto px-4 py-6 flex flex-col"
       >
-        {chatMessages.map((message, index) => {
-          const isLastBeepMessage = message.speaker === "beep" &&
-            index === chatMessages.map((m, i) => m.speaker === "beep" ? i : -1).filter(i => i >= 0).pop();
-          const isLastBuzzMessage = message.speaker === "buzz" &&
-            index === chatMessages.map((m, i) => m.speaker === "buzz" ? i : -1).filter(i => i >= 0).pop();
-          const showCharacter = isLastBeepMessage || isLastBuzzMessage;
-          const showVocalizing = (isLastBeepMessage && isVocalizing) || (isLastBuzzMessage && isAIVocalizing);
+        {chatMessages.length === 0 ? (
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div className="w-16 h-16">
+                <BeepCharacter isSpeaking={false} isVocalizing={isVocalizing} />
+              </div>
+              <span className="text-sm font-semibold text-chart-3">Beep</span>
+              <span className="text-xs text-muted-foreground">(You)</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div className="w-16 h-16">
+                <BuzzCharacter isSpeaking={false} isVocalizing={false} />
+              </div>
+              <span className="text-sm font-semibold text-accent-foreground">Buzz</span>
+              <span className="text-xs text-muted-foreground">(AI)</span>
+            </div>
+          </div>
+        ) : (
+          chatMessages.map((message, index) => {
+            const isLastBeepMessage = message.speaker === "beep" &&
+              index === chatMessages.map((m, i) => m.speaker === "beep" ? i : -1).filter(i => i >= 0).pop();
+            const isLastBuzzMessage = message.speaker === "buzz" &&
+              index === chatMessages.map((m, i) => m.speaker === "buzz" ? i : -1).filter(i => i >= 0).pop();
+            const showCharacter = isLastBeepMessage || isLastBuzzMessage;
+            const showVocalizing = (isLastBeepMessage && isVocalizing) || (isLastBuzzMessage && isAIVocalizing);
 
-          return (
-            <ChatBubble
-              key={index}
-              speaker={message.speaker}
-              morse={message.morse}
-              text={message.text}
-              isComplete={message.isComplete}
-              showCharacter={showCharacter}
-              isVocalizing={showVocalizing}
-            />
-          );
-        })}
+            return (
+              <ChatBubble
+                key={index}
+                speaker={message.speaker}
+                morse={message.morse}
+                text={message.text}
+                isComplete={message.isComplete}
+                showCharacter={showCharacter}
+                isVocalizing={showVocalizing}
+              />
+            );
+          })
+        )}
       </div>
     </div>
   );
