@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/layout.stores";
 import { useGameStore } from "@/app/page.stores";
 import { useCurrentUserProfile } from "@/app/page.hooks";
 import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
 import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MorseCheatSheet } from "@/components/MorseCheatSheet";
+import { useChatLayoutStore } from "@/app/chat/layout.stores";
+import { Bot, ChevronDown, Shuffle, UserRound } from "lucide-react";
 import {
   useDirectMessages,
   useRealtimeDirectMessages,
@@ -14,6 +19,13 @@ import {
   useMorseSignals,
 } from "@/app/chat/[username]/page.hooks";
 import type { DirectMessage } from "@/app/chat/[username]/page.types";
+import type { ChatMode } from "@/app/chat/layout.stores";
+
+const chatModeOptions: { value: ChatMode; label: string; icon: typeof Bot }[] = [
+  { value: "ai", label: "Chat with AI", icon: Bot },
+  { value: "random", label: "Chat with Random User", icon: Shuffle },
+  { value: "friend", label: "Chat with a friend", icon: UserRound },
+];
 
 const DOT_THRESHOLD = 200;
 
@@ -22,10 +34,11 @@ interface ChatBubbleProps {
   morse: string;
   text: string;
   isVocalizing?: boolean;
+  isActive?: boolean;
   username?: string | null;
 }
 
-function ChatBubble({ speaker, morse, text, isVocalizing, username }: ChatBubbleProps) {
+function ChatBubble({ speaker, morse, text, isVocalizing, isActive, username }: ChatBubbleProps) {
   const isBeep = speaker === "beep";
   const bubbleColor = isBeep ? "bg-chart-3" : "bg-accent-foreground";
   const alignment = isBeep ? "self-start" : "self-end";
@@ -48,7 +61,7 @@ function ChatBubble({ speaker, morse, text, isVocalizing, username }: ChatBubble
           {username || (isBeep ? "You" : "Partner")}
         </span>
       </div>
-      <div className={cn("rounded-3xl px-6 py-4 text-white relative", bubbleColor, pointerStyle)}>
+      <div className={cn("rounded-3xl px-6 py-4 text-white relative", bubbleColor, isActive && pointerStyle)}>
         <div className="font-mono text-2xl mb-2 min-h-[2rem] break-all">
           {morse || "\u00A0"}
         </div>
@@ -75,8 +88,10 @@ interface MorseChatDirectProps {
 }
 
 export function MorseChatDirect({ partnerUserId, partnerUsername, className }: MorseChatDirectProps) {
+  const router = useRouter();
+  const { setChatMode } = useChatLayoutStore();
   const { user } = useAuthStore();
-  const { userInput, appendToUserInput, clearUserInput, partnerInput, setPartnerInput, appendToPartnerInput, morseSpeed } = useGameStore();
+  const { userInput, appendToUserInput, clearUserInput, partnerInput, setPartnerInput, appendToPartnerInput, morseSpeed, morseVolume } = useGameStore();
   const [isVocalizing, setIsVocalizing] = useState(false);
   const [isPartnerVocalizing, setIsPartnerVocalizing] = useState(false);
   const [localMessages, setLocalMessages] = useState<HistoryMessage[]>([]);
@@ -101,6 +116,8 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
 
   const morseSpeedRef = useRef(morseSpeed);
   morseSpeedRef.current = morseSpeed;
+  const morseVolumeRef = useRef(morseVolume);
+  morseVolumeRef.current = morseVolume;
 
   const completePartnerMessageRef = useRef<() => void>(() => {});
 
@@ -119,8 +136,8 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     gainNode.connect(ctx.destination);
     oscillator.frequency.value = 600;
     oscillator.type = "sine";
-    gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+    gainNode.gain.setValueAtTime(morseVolumeRef.current / 100, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + duration / 1000);
   }, []);
@@ -160,7 +177,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     oscillator.frequency.value = 600;
     oscillator.type = "sine";
     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
+    gainNode.gain.linearRampToValueAtTime(morseVolumeRef.current / 100, audioContext.currentTime + 0.01);
     oscillator.start();
     oscillatorRef.current = oscillator;
     gainNodeRef.current = gainNode;
@@ -292,6 +309,13 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     await beepPromise;
   }, [startBeep]);
 
+  const cancelMyMessage = useCallback(() => {
+    if (characterGapTimerRef.current) { clearTimeout(characterGapTimerRef.current); characterGapTimerRef.current = null; }
+    if (wordGapTimerRef.current) { clearTimeout(wordGapTimerRef.current); wordGapTimerRef.current = null; }
+    if (messageEndTimerRef.current) { clearTimeout(messageEndTimerRef.current); messageEndTimerRef.current = null; }
+    clearUserInput();
+  }, [clearUserInput]);
+
   const handlePressEnd = useCallback(async () => {
     if (pressStartRef.current === null) return;
 
@@ -317,8 +341,17 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     const messageEnd = ditDuration * 14;
 
     characterGapTimerRef.current = setTimeout(() => {
-      appendToUserInput(" ");
+      const currentInput = useGameStore.getState().userInput;
+      const tokens = currentInput.split(" ").filter((t) => t !== "" && t !== "/");
+      const lastChar = tokens[tokens.length - 1] ?? "";
       characterGapTimerRef.current = null;
+
+      if (lastChar === "........") {
+        cancelMyMessage();
+        return;
+      }
+
+      appendToUserInput(" ");
 
       wordGapTimerRef.current = setTimeout(() => {
         appendToUserInput("/ ");
@@ -329,7 +362,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
         }, messageEnd);
       }, wordGap - charGap);
     }, charGap);
-  }, [appendToUserInput, stopBeep, morseSpeed, completeMyMessage, broadcastSignal]);
+  }, [appendToUserInput, stopBeep, morseSpeed, completeMyMessage, cancelMyMessage, broadcastSignal]);
 
   useEffect(() => {
     const isInputFocused = () => {
@@ -414,9 +447,44 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
   const partnerText = morseToText(partnerMorse);
 
   return (
-    <div className={cn("flex flex-col", className)}>
-      <div className="border-b px-4 py-3 flex items-center gap-2">
-        <span className="font-semibold">{partnerUsername}</span>
+    <div className={cn("flex flex-col min-h-0", className)}>
+      <div className="relative border-b px-4 py-2 flex items-center justify-between">
+        <div className="w-8" />
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 text-sm font-medium hover:text-muted-foreground transition-colors">
+              Chat with {partnerUsername}
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-52 p-1" align="center">
+            {chatModeOptions.map((option) => {
+              const Icon = option.icon;
+              const isActive = option.value === "friend";
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setChatMode(option.value);
+                    if (option.value !== "friend") {
+                      router.push("/chat");
+                    }
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+                    isActive
+                      ? "bg-muted font-medium text-foreground"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {option.label}
+                </button>
+              );
+            })}
+          </PopoverContent>
+        </Popover>
+        <MorseCheatSheet />
       </div>
       <div
         ref={scrollContainerRef}
@@ -456,6 +524,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
             morse={myMorse}
             text={myText}
             isVocalizing={isVocalizing}
+            isActive
             username={myUsername}
           />
         )}
@@ -465,6 +534,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
             morse={partnerMorse}
             text={partnerText}
             isVocalizing={isPartnerVocalizing}
+            isActive
             username={partnerUsername}
           />
         )}

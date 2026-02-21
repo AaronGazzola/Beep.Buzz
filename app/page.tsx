@@ -1,12 +1,10 @@
 "use client";
 
-import { InlineSignUp } from "@/components/InlineSignUp";
 import { LearnedLetters } from "@/components/LearnedLetters";
 import { MorseTrainer } from "@/components/MorseTrainer";
 import { cn } from "@/lib/utils";
 import { MessagesSquare } from "lucide-react";
 import Link from "next/link";
-import { useAuthStore } from "./layout.stores";
 import { useLearnedLetters, useLearnedLettersSync } from "./page.hooks";
 import { useGameStore } from "./page.stores";
 import type { TrainerMode } from "./page.types";
@@ -36,7 +34,6 @@ const trainerModes: {
 export default function Home() {
   const learnedLettersQuery = useLearnedLetters();
   useLearnedLettersSync();
-  const { isAuthenticated } = useAuthStore();
   const { trainerMode, setTrainerMode } = useGameStore();
 
   return (
@@ -51,11 +48,7 @@ export default function Home() {
         </p>
 
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="h-[44rem] md:h-[48rem] lg:h-64">
-            <MorseTrainer key="training" />
-          </div>
-
-          <div className="mt-6 flex flex-col items-center">
+          <div className="flex flex-col items-center mb-4">
             <div className="inline-flex rounded-lg bg-muted p-1">
               {trainerModes.map((mode) => (
                 <button
@@ -76,6 +69,10 @@ export default function Home() {
               {trainerModes.find((m) => m.value === trainerMode)?.description}
             </p>
           </div>
+
+          <div className="h-[44rem] md:h-[48rem] lg:h-64">
+            <MorseTrainer key="training" />
+          </div>
         </div>
 
         <LearnedLetters
@@ -83,22 +80,21 @@ export default function Home() {
           isLoading={learnedLettersQuery.isPending}
         />
 
-        <div className="mb-8 flex flex-col items-center gap-4">
+        <div className="mt-20 mb-2 flex flex-col items-center gap-4">
           <div>
             <p className="text-lg text-muted-foreground">Ready to test your skills?</p>
             <p className="text-lg text-muted-foreground">Tap Morse code with an AI or with real users!</p>
           </div>
           <Link
             href="/chat"
-            className="inline-flex items-center gap-2.5 rounded-lg border px-10 py-3.5 text-base font-semibold text-white hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-3 rounded-full border px-12 py-4 text-lg font-semibold text-white hover:opacity-90 transition-opacity"
             style={{ borderColor: "var(--color-chart-4)", backgroundColor: "var(--color-chart-4)" }}
           >
-            <MessagesSquare className="h-5 w-5" strokeWidth={2.5} />
+            <MessagesSquare className="h-6 w-6" strokeWidth={2.5} />
             Live chat in Morse code
           </Link>
         </div>
 
-        {!isAuthenticated && <InlineSignUp className="mb-8" />}
       </section>
     </div>
   );

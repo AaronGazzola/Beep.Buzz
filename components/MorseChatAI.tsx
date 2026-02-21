@@ -37,10 +37,7 @@ function ChatBubble({ speaker, morse, text, isComplete, showCharacter, isVocaliz
               <BuzzCharacter isSpeaking={true} isVocalizing={isVocalizing} />
             )}
           </div>
-          <span className={cn(
-            "text-sm font-semibold",
-            isBeep ? "text-chart-3" : "text-accent-foreground"
-          )}>
+          <span className={cn("text-sm font-semibold", isBeep ? "text-chart-3" : "text-accent-foreground")}>
             {isBeep ? "Beep" : "Buzz"}
           </span>
           <span className="text-xs text-muted-foreground">
@@ -48,7 +45,7 @@ function ChatBubble({ speaker, morse, text, isComplete, showCharacter, isVocaliz
           </span>
         </div>
       )}
-      <div className={cn("rounded-3xl px-6 py-4 text-white relative", bubbleColor, pointerStyle)}>
+      <div className={cn("rounded-3xl px-6 py-4 text-white relative", bubbleColor, !isComplete && pointerStyle)}>
         <div className="font-mono text-2xl mb-2 min-h-[2rem] break-all">
           {morse || "\u00A0"}
         </div>
@@ -73,9 +70,14 @@ export function MorseChatAI({ className }: { className?: string }) {
     clearUserInput,
     addChatMessage,
     updateLastChatMessage,
+    removeLastChatMessage,
     clearChatMessages,
     morseSpeed,
+    morseVolume,
   } = useGameStore();
+
+  const morseVolumeRef = useRef(morseVolume);
+  morseVolumeRef.current = morseVolume;
 
   const dotThreshold = (1200 / SPEED_WPM[morseSpeed]) * 2;
 
@@ -161,9 +163,10 @@ export function MorseChatAI({ className }: { className?: string }) {
       osc.frequency.value = 600;
       osc.type = "sine";
       const now = audioCtx.currentTime;
+      const vol = morseVolumeRef.current / 100;
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.5, now + 0.01);
-      gain.gain.setValueAtTime(0.5, now + duration / 1000 - 0.01);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+      gain.gain.setValueAtTime(vol, now + duration / 1000 - 0.01);
       gain.gain.linearRampToValueAtTime(0, now + duration / 1000);
       osc.start(now);
       osc.stop(now + duration / 1000);
@@ -267,7 +270,7 @@ export function MorseChatAI({ className }: { className?: string }) {
     oscillator.frequency.value = 600;
     oscillator.type = "sine";
     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
+    gainNode.gain.linearRampToValueAtTime(morseVolumeRef.current / 100, audioContext.currentTime + 0.01);
 
     oscillator.start();
 
@@ -356,6 +359,18 @@ export function MorseChatAI({ className }: { className?: string }) {
     }, 500);
   }, [clearUserInput, updateLastChatMessage, playAIResponse]);
 
+  const cancelMessage = useCallback(() => {
+    if (characterGapTimerRef.current) { clearTimeout(characterGapTimerRef.current); characterGapTimerRef.current = null; }
+    if (wordGapTimerRef.current) { clearTimeout(wordGapTimerRef.current); wordGapTimerRef.current = null; }
+    if (messageEndTimerRef.current) { clearTimeout(messageEndTimerRef.current); messageEndTimerRef.current = null; }
+    clearUserInput();
+    const messages = useGameStore.getState().chatMessages;
+    const last = messages[messages.length - 1];
+    if (last && last.speaker === "beep" && !last.isComplete) {
+      removeLastChatMessage();
+    }
+  }, [clearUserInput, removeLastChatMessage]);
+
   const handlePressEnd = useCallback(async () => {
     if (pressStartRef.current === null) {
       return;
@@ -381,8 +396,17 @@ export function MorseChatAI({ className }: { className?: string }) {
     const messageEnd = ditDuration * 14;
 
     characterGapTimerRef.current = setTimeout(() => {
-      appendToUserInput(" ");
+      const currentInput = useGameStore.getState().userInput;
+      const tokens = currentInput.split(" ").filter((t) => t !== "" && t !== "/");
+      const lastChar = tokens[tokens.length - 1] ?? "";
       characterGapTimerRef.current = null;
+
+      if (lastChar === "........") {
+        cancelMessage();
+        return;
+      }
+
+      appendToUserInput(" ");
 
       wordGapTimerRef.current = setTimeout(() => {
         appendToUserInput("/ ");
@@ -393,7 +417,7 @@ export function MorseChatAI({ className }: { className?: string }) {
         }, messageEnd);
       }, wordGap - charGap);
     }, charGap);
-  }, [appendToUserInput, stopBeep, completeMessage, dotThreshold, morseSpeed]);
+  }, [appendToUserInput, stopBeep, completeMessage, cancelMessage, dotThreshold, morseSpeed]);
 
 
   useEffect(() => {
@@ -573,6 +597,12 @@ export function MorseChatAI({ className }: { className?: string }) {
     };
   }, []);
 
+  const lastMessage = chatMessages[chatMessages.length - 1];
+  const beepActuallySpeaking = !!(lastMessage && lastMessage.speaker === "beep" && !lastMessage.isComplete);
+  const buzzActuallySpeaking = !!(lastMessage && lastMessage.speaker === "buzz" && !lastMessage.isComplete);
+  const lastBeepIdx = chatMessages.reduce<number>((acc, m, i) => m.speaker === "beep" ? i : acc, -1);
+  const lastBuzzIdx = chatMessages.reduce<number>((acc, m, i) => m.speaker === "buzz" ? i : acc, -1);
+
   return (
     <div
       className={cn("flex flex-1 flex-col min-h-0 cursor-pointer", className)}
@@ -613,26 +643,45 @@ export function MorseChatAI({ className }: { className?: string }) {
             </div>
           </div>
         ) : (
-          chatMessages.map((message, index) => {
-            const isLastBeepMessage = message.speaker === "beep" &&
-              index === chatMessages.map((m, i) => m.speaker === "beep" ? i : -1).filter(i => i >= 0).pop();
-            const isLastBuzzMessage = message.speaker === "buzz" &&
-              index === chatMessages.map((m, i) => m.speaker === "buzz" ? i : -1).filter(i => i >= 0).pop();
-            const showCharacter = isLastBeepMessage || isLastBuzzMessage;
-            const showVocalizing = (isLastBeepMessage && isVocalizing) || (isLastBuzzMessage && isAIVocalizing);
-
-            return (
-              <ChatBubble
-                key={index}
-                speaker={message.speaker}
-                morse={message.morse}
-                text={message.text}
-                isComplete={message.isComplete}
-                showCharacter={showCharacter}
-                isVocalizing={showVocalizing}
-              />
-            );
-          })
+          <>
+            {chatMessages.map((message, index) => {
+              const showBeepChar = message.speaker === "beep" && index === lastBeepIdx && beepActuallySpeaking;
+              const showBuzzChar = message.speaker === "buzz" && index === lastBuzzIdx && buzzActuallySpeaking;
+              const showCharacter = showBeepChar || showBuzzChar;
+              const showVocalizing = (showBeepChar && isVocalizing) || (showBuzzChar && isAIVocalizing);
+              return (
+                <ChatBubble
+                  key={index}
+                  speaker={message.speaker}
+                  morse={message.morse}
+                  text={message.text}
+                  isComplete={message.isComplete}
+                  showCharacter={showCharacter}
+                  isVocalizing={showVocalizing}
+                />
+              );
+            })}
+            <div className="flex items-start mb-4">
+              {!beepActuallySpeaking && (
+                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                  <div className="w-16 h-16">
+                    <BeepCharacter isSpeaking={false} isVocalizing={false} />
+                  </div>
+                  <span className="text-sm font-semibold text-chart-3">Beep</span>
+                  <span className="text-xs text-muted-foreground">(You)</span>
+                </div>
+              )}
+              {!buzzActuallySpeaking && (
+                <div className="flex flex-col items-center gap-1 flex-shrink-0 ml-auto">
+                  <div className="w-16 h-16">
+                    <BuzzCharacter isSpeaking={false} isVocalizing={false} />
+                  </div>
+                  <span className="text-sm font-semibold text-accent-foreground">Buzz</span>
+                  <span className="text-xs text-muted-foreground">(AI)</span>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

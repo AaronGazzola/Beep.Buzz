@@ -39,16 +39,19 @@ async function seed() {
     {
       email: "az@beep.buzz",
       password: "Password123!",
+      username: "azz",
       role: "super-admin" as const,
     },
     {
       email: "user1@example.com",
       password: "Password123!",
+      username: "user1",
       role: "user" as const,
     },
     {
       email: "user2@example.com",
       password: "Password123!",
+      username: "user2",
       role: "user" as const,
     },
   ];
@@ -66,6 +69,7 @@ async function seed() {
         email: userData.email,
         password: userData.password,
         email_confirm: true,
+        user_metadata: { username: userData.username },
       });
 
     if (authError) {

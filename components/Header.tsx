@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, MessagesSquare, Trash2 } from "lucide-react";
+import { BookOpen, LogOut, MessagesSquare, Trash2, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ export function Header() {
   const signOut = useSignOut();
   const pathname = usePathname();
   const isChatActive = pathname.startsWith("/chat");
+  const isLearnActive = pathname === "/";
 
   const handleSignOut = () => {
     signOut.mutate();
@@ -34,33 +35,46 @@ export function Header() {
   return (
     <header className="border-b bg-background sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
+        <div className="relative flex h-16 items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center gap-2"
+          >
+            <span className="font-bold text-xl text-primary">Beep.Buzz</span>
+          </Link>
+
+          <div
+            className="inline-flex rounded-lg p-1 border xs:absolute xs:left-1/2 xs:-translate-x-1/2"
+            style={{ borderColor: "var(--color-chart-4)" }}
+          >
             <Link
               href="/"
-              className="flex items-center gap-2"
-            >
-              <span className="font-bold text-xl text-primary">Beep.Buzz</span>
-            </Link>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="font-semibold"
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-extrabold rounded-md transition-colors",
+                isLearnActive ? "" : "hover:bg-black/5",
+              )}
               style={{
-                borderColor: "var(--color-chart-4)",
-                backgroundColor: isChatActive ? "transparent" : "var(--color-chart-4)",
-                color: isChatActive ? "var(--color-chart-4)" : "white",
+                backgroundColor: isLearnActive ? "var(--color-chart-4)" : "transparent",
+                color: isLearnActive ? "white" : "var(--color-chart-4)",
               }}
             >
-              <Link href="/chat">
-                <MessagesSquare
-                  className="h-4 w-4"
-                  strokeWidth={2.5}
-                />
-                Chat
-              </Link>
-            </Button>
+              <BookOpen className="hidden xs:block h-4 w-4" strokeWidth={2.5} />
+              Learn
+            </Link>
+            <Link
+              href="/chat"
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-extrabold rounded-md transition-colors",
+                isChatActive ? "" : "hover:bg-black/5",
+              )}
+              style={{
+                backgroundColor: isChatActive ? "var(--color-chart-4)" : "transparent",
+                color: isChatActive ? "white" : "var(--color-chart-4)",
+              }}
+            >
+              <MessagesSquare className="hidden xs:block h-4 w-4" strokeWidth={2.5} />
+              Chat
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">
@@ -112,7 +126,7 @@ export function Header() {
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="hidden xs:inline-flex"
+                  className="hidden sm:inline-flex"
                 >
                   <Link href="/sign-in">Sign In</Link>
                 </Button>
@@ -120,7 +134,10 @@ export function Header() {
                   asChild
                   size="sm"
                 >
-                  <Link href="/sign-up">Sign Up</Link>
+                  <Link href="/sign-up">
+                    <User className="h-4 w-4 xs:hidden" strokeWidth={2.5} />
+                    <span className="hidden xs:inline">Sign Up</span>
+                  </Link>
                 </Button>
               </div>
             )}

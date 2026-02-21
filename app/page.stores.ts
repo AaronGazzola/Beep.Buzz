@@ -40,8 +40,11 @@ interface GameStore extends GameState {
   setInterfaceMode: (mode: InterfaceMode) => void;
   addChatMessage: (message: ChatMessage) => void;
   updateLastChatMessage: (morse: string, text: string, isComplete: boolean) => void;
+  removeLastChatMessage: () => void;
   clearChatMessages: () => void;
   setMorseSpeed: (speed: MorseSpeed) => void;
+  morseVolume: number;
+  setMorseVolume: (volume: number) => void;
   setPartnerInput: (input: string) => void;
   appendToPartnerInput: (signal: string) => void;
   partnerInput: string;
@@ -73,6 +76,7 @@ export const useGameStore = create<GameStore>()(
       interfaceMode: "training",
       chatMessages: [],
       morseSpeed: "slow",
+      morseVolume: 80,
       partnerInput: "",
 
   setStep: (step) => set({ step }),
@@ -193,8 +197,10 @@ export const useGameStore = create<GameStore>()(
       }
       return { chatMessages: messages };
     }),
+  removeLastChatMessage: () => set((state) => ({ chatMessages: state.chatMessages.slice(0, -1) })),
   clearChatMessages: () => set({ chatMessages: [] }),
   setMorseSpeed: (speed) => set({ morseSpeed: speed }),
+  setMorseVolume: (volume) => set({ morseVolume: volume }),
   setPartnerInput: (input) => set({ partnerInput: input }),
   appendToPartnerInput: (signal) =>
     set((state) => ({ partnerInput: state.partnerInput + signal })),
@@ -206,6 +212,7 @@ export const useGameStore = create<GameStore>()(
         trainerMode: state.trainerMode,
         interfaceMode: state.interfaceMode,
         morseSpeed: state.morseSpeed,
+        morseVolume: state.morseVolume,
       }),
     }
   )
