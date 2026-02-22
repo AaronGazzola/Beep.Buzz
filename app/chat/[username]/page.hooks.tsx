@@ -50,6 +50,8 @@ export function useRealtimeDirectMessages(partnerUserId: string) {
             ["directMessages", partnerUserId],
             (old: { pages: DirectMessage[][]; pageParams: unknown[] } | undefined) => {
               if (!old) return old;
+              const alreadyExists = old.pages.some((page) => page.some((m) => m.id === msg.id));
+              if (alreadyExists) return old;
               const firstPage = [msg, ...(old.pages[0] ?? [])];
               return { ...old, pages: [firstPage, ...old.pages.slice(1)] };
             }
@@ -64,7 +66,9 @@ export function useRealtimeDirectMessages(partnerUserId: string) {
   }, [user, partnerUserId, queryClient]);
 }
 
-export function useSendDirectMessage() {
+export function useSendDirectMessage(partnerUserId: string) {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       recipientId,
@@ -75,6 +79,18 @@ export function useSendDirectMessage() {
       message: string;
       morseCode: string;
     }) => sendDirectMessageAction(recipientId, message, morseCode),
+    onSuccess: (newMessage) => {
+      queryClient.setQueryData(
+        ["directMessages", partnerUserId],
+        (old: { pages: DirectMessage[][]; pageParams: unknown[] } | undefined) => {
+          if (!old) return old;
+          const alreadyExists = old.pages.some((page) => page.some((m) => m.id === newMessage.id));
+          if (alreadyExists) return old;
+          const firstPage = [newMessage, ...(old.pages[0] ?? [])];
+          return { ...old, pages: [firstPage, ...old.pages.slice(1)] };
+        }
+      );
+    },
   });
 }
 

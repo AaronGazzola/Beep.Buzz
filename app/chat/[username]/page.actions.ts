@@ -45,7 +45,7 @@ export async function sendDirectMessageAction(
   recipientId: string,
   message: string,
   morseCode: string
-): Promise<void> {
+): Promise<DirectMessage> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,15 +56,21 @@ export async function sendDirectMessageAction(
     throw new Error("Unauthorized");
   }
 
-  const { error } = await supabase.from("direct_messages").insert({
-    sender_id: user.id,
-    recipient_id: recipientId,
-    message,
-    morse_code: morseCode,
-  });
+  const { data, error } = await supabase
+    .from("direct_messages")
+    .insert({
+      sender_id: user.id,
+      recipient_id: recipientId,
+      message,
+      morse_code: morseCode,
+    })
+    .select()
+    .single();
 
   if (error) {
     console.error(error);
     throw new Error("Failed to send message");
   }
+
+  return data;
 }

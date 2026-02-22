@@ -110,9 +110,6 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
   const characterGapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wordGapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messageEndTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const partnerCharGapTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const partnerWordGapTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const partnerMessageEndTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const morseSpeedRef = useRef(morseSpeed);
   morseSpeedRef.current = morseSpeed;
@@ -120,10 +117,11 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
   morseVolumeRef.current = morseVolume;
 
   const completePartnerMessageRef = useRef<() => void>(() => {});
+  const broadcastSignalRef = useRef<(signal: string) => void>(() => {});
 
   const messagesQuery = useDirectMessages(partnerUserId);
   useRealtimeDirectMessages(partnerUserId);
-  const sendMessage = useSendDirectMessage();
+  const sendMessage = useSendDirectMessage(partnerUserId);
 
   const playBeepShort = useCallback((duration: number = 100) => {
     if (!audioContextRef.current) {
@@ -190,38 +188,29 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     (signal: string, fromUserId: string) => {
       if (fromUserId !== partnerUserId) return;
 
-      if (partnerCharGapTimerRef.current) { clearTimeout(partnerCharGapTimerRef.current); partnerCharGapTimerRef.current = null; }
-      if (partnerWordGapTimerRef.current) { clearTimeout(partnerWordGapTimerRef.current); partnerWordGapTimerRef.current = null; }
-      if (partnerMessageEndTimerRef.current) { clearTimeout(partnerMessageEndTimerRef.current); partnerMessageEndTimerRef.current = null; }
+      if (signal === "complete") {
+        completePartnerMessageRef.current();
+        return;
+      }
+
+      if (signal === "cancel") {
+        setPartnerInput("");
+        return;
+      }
 
       appendToPartnerInput(signal);
-      setIsPartnerVocalizing(true);
-      setTimeout(() => setIsPartnerVocalizing(false), signal === "." ? 100 : 300);
-      playBeepShort(signal === "." ? 100 : 300);
 
-      const ditDuration = 1200 / SPEED_WPM[morseSpeedRef.current];
-      const charGap = ditDuration * 3;
-      const wordGap = ditDuration * 7;
-      const messageEnd = ditDuration * 14;
-
-      partnerCharGapTimerRef.current = setTimeout(() => {
-        appendToPartnerInput(" ");
-        partnerCharGapTimerRef.current = null;
-
-        partnerWordGapTimerRef.current = setTimeout(() => {
-          appendToPartnerInput("/ ");
-          partnerWordGapTimerRef.current = null;
-
-          partnerMessageEndTimerRef.current = setTimeout(() => {
-            completePartnerMessageRef.current();
-          }, messageEnd);
-        }, wordGap - charGap);
-      }, charGap);
+      if (signal === "." || signal === "-") {
+        setIsPartnerVocalizing(true);
+        setTimeout(() => setIsPartnerVocalizing(false), signal === "." ? 100 : 300);
+        playBeepShort(signal === "." ? 100 : 300);
+      }
     },
-    [partnerUserId, appendToPartnerInput, playBeepShort]
+    [partnerUserId, appendToPartnerInput, setPartnerInput, playBeepShort]
   );
 
   const { broadcastSignal } = useMorseSignals(partnerUserId, handleSignal);
+  broadcastSignalRef.current = broadcastSignal;
 
   useEffect(() => {
     clearUserInput();
@@ -230,15 +219,25 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
   }, [partnerUserId, clearUserInput, setPartnerInput]);
 
   const allHistoryMessages: HistoryMessage[] = (() => {
-    if (!messagesQuery.data) return localMessages;
-    return messagesQuery.data.pages
-      .flatMap((page) => [...page].reverse())
-      .map((msg: DirectMessage) => ({
-        speaker: msg.sender_id === user?.id ? ("beep" as const) : ("buzz" as const),
-        morse: msg.morse_code,
-        text: msg.message,
-      }));
+    const dbMessages = messagesQuery.data
+      ? messagesQuery.data.pages
+          .flatMap((page) => [...page].reverse())
+          .map((msg: DirectMessage) => ({
+            speaker: msg.sender_id === user?.id ? ("beep" as const) : ("buzz" as const),
+            morse: msg.morse_code,
+            text: msg.message,
+          }))
+      : [];
+    return [...dbMessages, ...localMessages];
   })();
+
+  useEffect(() => {
+    if (!messagesQuery.data || localMessages.length === 0) return;
+    const cachedMorses = new Set(
+      messagesQuery.data.pages.flatMap((page) => page.map((m) => m.morse_code))
+    );
+    setLocalMessages((prev) => prev.filter((m) => !cachedMorses.has(m.morse)));
+  }, [messagesQuery.data]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -272,6 +271,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     const finalText = morseToText(currentMorse);
     setLocalMessages((prev) => [...prev, { speaker: "beep", morse: currentMorse, text: finalText }]);
     clearUserInput();
+    broadcastSignalRef.current("complete");
 
     if (user) {
       sendMessage.mutate({ recipientId: partnerUserId, message: finalText, morseCode: currentMorse });
@@ -279,10 +279,6 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
   }, [clearUserInput, user, partnerUserId, sendMessage]);
 
   const completePartnerMessage = useCallback(() => {
-    if (partnerCharGapTimerRef.current) { clearTimeout(partnerCharGapTimerRef.current); partnerCharGapTimerRef.current = null; }
-    if (partnerWordGapTimerRef.current) { clearTimeout(partnerWordGapTimerRef.current); partnerWordGapTimerRef.current = null; }
-    if (partnerMessageEndTimerRef.current) { clearTimeout(partnerMessageEndTimerRef.current); partnerMessageEndTimerRef.current = null; }
-
     const currentMorse = useGameStore.getState().partnerInput;
     if (!currentMorse || currentMorse.trim().length === 0) return;
 
@@ -314,6 +310,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     if (wordGapTimerRef.current) { clearTimeout(wordGapTimerRef.current); wordGapTimerRef.current = null; }
     if (messageEndTimerRef.current) { clearTimeout(messageEndTimerRef.current); messageEndTimerRef.current = null; }
     clearUserInput();
+    broadcastSignalRef.current("cancel");
   }, [clearUserInput]);
 
   const handlePressEnd = useCallback(async () => {
@@ -333,7 +330,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     appendToUserInput(signal);
     pressStartRef.current = null;
 
-    broadcastSignal(signal);
+    broadcastSignalRef.current(signal);
 
     const ditDuration = 1200 / SPEED_WPM[morseSpeed];
     const charGap = ditDuration * 3;
@@ -352,9 +349,11 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
       }
 
       appendToUserInput(" ");
+      broadcastSignalRef.current(" ");
 
       wordGapTimerRef.current = setTimeout(() => {
         appendToUserInput("/ ");
+        broadcastSignalRef.current("/ ");
         wordGapTimerRef.current = null;
 
         messageEndTimerRef.current = setTimeout(() => {
@@ -362,7 +361,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
         }, messageEnd);
       }, wordGap - charGap);
     }, charGap);
-  }, [appendToUserInput, stopBeep, morseSpeed, completeMyMessage, cancelMyMessage, broadcastSignal]);
+  }, [appendToUserInput, stopBeep, morseSpeed, completeMyMessage, cancelMyMessage]);
 
   useEffect(() => {
     const isInputFocused = () => {
@@ -404,9 +403,6 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
       if (characterGapTimerRef.current) clearTimeout(characterGapTimerRef.current);
       if (wordGapTimerRef.current) clearTimeout(wordGapTimerRef.current);
       if (messageEndTimerRef.current) clearTimeout(messageEndTimerRef.current);
-      if (partnerCharGapTimerRef.current) clearTimeout(partnerCharGapTimerRef.current);
-      if (partnerWordGapTimerRef.current) clearTimeout(partnerWordGapTimerRef.current);
-      if (partnerMessageEndTimerRef.current) clearTimeout(partnerMessageEndTimerRef.current);
     };
   }, []);
 
