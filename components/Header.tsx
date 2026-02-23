@@ -15,6 +15,7 @@ import { BookOpen, LogOut, MessagesSquare, Trash2, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/Logo";
 
 export function Header() {
   const { user, profile, isAuthenticated } = useAuthStore();
@@ -40,6 +41,7 @@ export function Header() {
             href="/"
             className="flex items-center gap-2"
           >
+            <Logo className="h-9 w-9" />
             <span className="font-bold text-xl text-primary">Beep.Buzz</span>
           </Link>
 

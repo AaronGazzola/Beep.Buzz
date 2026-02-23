@@ -40,7 +40,7 @@ export default function Home() {
     <div className="container mx-auto px-4 py-12">
       <section className="text-center mb-16">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">
-          Learn Morse Code with
+          Morse Code with
           <span className="block text-primary">Beep & Buzz</span>
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
@@ -82,19 +82,28 @@ export default function Home() {
 
         <div className="mt-20 mb-2 flex flex-col items-center gap-4">
           <div>
-            <p className="text-lg text-muted-foreground">Ready to test your skills?</p>
-            <p className="text-lg text-muted-foreground">Tap Morse code with an AI or with real users!</p>
+            <p className="text-lg text-muted-foreground">
+              Ready to test your skills?
+            </p>
+            <p className="text-lg text-muted-foreground">
+              Tap Morse code with an AI or with real users!
+            </p>
           </div>
           <Link
             href="/chat"
             className="inline-flex items-center gap-3 rounded-full border px-12 py-4 text-lg font-semibold text-white hover:opacity-90 transition-opacity"
-            style={{ borderColor: "var(--color-chart-4)", backgroundColor: "var(--color-chart-4)" }}
+            style={{
+              borderColor: "var(--color-chart-4)",
+              backgroundColor: "var(--color-chart-4)",
+            }}
           >
-            <MessagesSquare className="h-6 w-6" strokeWidth={2.5} />
+            <MessagesSquare
+              className="h-6 w-6"
+              strokeWidth={2.5}
+            />
             Live chat in Morse code
           </Link>
         </div>
-
       </section>
     </div>
   );
