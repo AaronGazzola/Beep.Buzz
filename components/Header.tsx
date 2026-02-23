@@ -42,11 +42,17 @@ export function Header() {
             className="flex items-center gap-2"
           >
             <Logo className="h-9 w-9" />
-            <span className="font-bold text-xl text-primary">Beep.Buzz</span>
+            <span className="font-bold text-xl text-primary">
+              <span className="xs:hidden flex flex-col leading-tight text-center">
+                <span>Beep.</span>
+                <span>Buzz</span>
+              </span>
+              <span className="hidden xs:inline">Beep.Buzz</span>
+            </span>
           </Link>
 
           <div
-            className="inline-flex rounded-lg p-1 border xs:absolute xs:left-1/2 xs:-translate-x-1/2"
+            className="inline-flex rounded-lg p-1 border sm:absolute sm:left-1/2 sm:-translate-x-1/2"
             style={{ borderColor: "var(--color-chart-4)" }}
           >
             <Link
