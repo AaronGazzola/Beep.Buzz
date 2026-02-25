@@ -52,7 +52,9 @@ export function useRealtimeDirectMessages(partnerUserId: string) {
               if (!old) return old;
               const alreadyExists = old.pages.some((page) => page.some((m) => m.id === msg.id));
               if (alreadyExists) return old;
-              const firstPage = [msg, ...(old.pages[0] ?? [])];
+              const firstPage = [msg, ...(old.pages[0] ?? [])].sort(
+                (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+              );
               return { ...old, pages: [firstPage, ...old.pages.slice(1)] };
             }
           );
@@ -86,7 +88,9 @@ export function useSendDirectMessage(partnerUserId: string) {
           if (!old) return old;
           const alreadyExists = old.pages.some((page) => page.some((m) => m.id === newMessage.id));
           if (alreadyExists) return old;
-          const firstPage = [newMessage, ...(old.pages[0] ?? [])];
+          const firstPage = [newMessage, ...(old.pages[0] ?? [])].sort(
+            (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+          );
           return { ...old, pages: [firstPage, ...old.pages.slice(1)] };
         }
       );

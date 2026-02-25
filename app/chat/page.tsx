@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/layout.stores";
-import { useGameStore } from "@/app/page.stores";
 import { useProfileByUserId } from "@/app/page.hooks";
 import { MorseChatAI } from "@/components/MorseChatAI";
+import { ChatControls } from "@/components/ChatControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,29 +13,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Slider } from "@/components/ui/slider";
-import { Bike, Bot, ChevronDown, Gauge, Info, Loader2, Rabbit, Rocket, Shuffle, Turtle, UserRound, Volume2 } from "lucide-react";
+import { Bot, ChevronDown, Loader2, Shuffle, UserRound } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useChatLayoutStore } from "./layout.stores";
 import { useDirectMatchmaking } from "./layout.hooks";
 import type { ChatMode } from "./layout.stores";
-import type { MorseSpeed } from "@/app/page.types";
 
 const chatModeOptions: { value: ChatMode; label: string; icon: typeof Bot }[] = [
   { value: "ai", label: "Chat with AI", icon: Bot },
   { value: "random", label: "Chat with Random User", icon: Shuffle },
   { value: "friend", label: "Chat with a friend", icon: UserRound },
 ];
-
-const speedSteps: MorseSpeed[] = ["slow", "medium", "fast", "fastest"];
-
-const speedLabels: Record<MorseSpeed, string> = {
-  slow: "Slow",
-  medium: "Medium",
-  fast: "Fast",
-  fastest: "Fastest",
-};
 
 function RandomModeContent() {
   const { isAuthenticated } = useAuthStore();
@@ -82,7 +71,7 @@ function RandomModeContent() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
       <p className="text-sm text-muted-foreground">Find someone to chat with in Morse code</p>
-      <Button onClick={() => setIsSearching(true)}>Find Random Match</Button>
+      <Button data-testid="find-random-match" onClick={() => setIsSearching(true)}>Find Random Match</Button>
     </div>
   );
 }
@@ -127,7 +116,6 @@ function FriendModeContent() {
 }
 
 export default function ChatPage() {
-  const { morseSpeed, setMorseSpeed, morseVolume, setMorseVolume } = useGameStore();
   const { chatMode, setChatMode } = useChatLayoutStore();
 
   const currentOption = chatModeOptions.find((o) => o.value === chatMode)!;
@@ -139,7 +127,7 @@ export default function ChatPage() {
         <div className="hidden sm:block w-8" />
         <Popover>
           <PopoverTrigger asChild>
-            <button className="sm:absolute sm:left-1/2 sm:-translate-x-1/2 flex items-center gap-1.5 text-sm font-medium hover:text-muted-foreground transition-colors">
+            <button data-testid="chat-mode-selector" className="sm:absolute sm:left-1/2 sm:-translate-x-1/2 flex items-center gap-1.5 text-sm font-medium hover:text-muted-foreground transition-colors">
               <CurrentIcon className="h-4 w-4 flex-shrink-0" />
               <span className="hidden xs:inline">{currentOption.label}</span>
               <ChevronDown className="h-3.5 w-3.5" />
@@ -151,6 +139,7 @@ export default function ChatPage() {
               return (
                 <button
                   key={option.value}
+                  data-testid={`chat-mode-option-${option.value}`}
                   onClick={() => setChatMode(option.value)}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
@@ -166,86 +155,14 @@ export default function ChatPage() {
             })}
           </PopoverContent>
         </Popover>
-        <div className="flex items-center gap-1">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Gauge className="w-5 h-5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-52" align="end">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Speed</p>
-                  <span className="text-sm text-muted-foreground">{speedLabels[morseSpeed]}</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={3}
-                  step={1}
-                  value={[speedSteps.indexOf(morseSpeed)]}
-                  onValueChange={([v]) => setMorseSpeed(speedSteps[v])}
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Volume2 className="w-5 h-5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-52" align="end">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Volume</p>
-                  <span className="text-sm text-muted-foreground">{morseVolume}%</span>
-                </div>
-                <Slider
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={[morseVolume]}
-                  onValueChange={([v]) => setMorseVolume(v)}
-                />
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="bg-muted rounded-lg p-2 text-muted-foreground hover:text-foreground transition-colors">
-                <Info className="w-5 h-5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="end">
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Morse Code Input Guide</h4>
-                <p className="text-sm text-muted-foreground">
-                  Click/Tap anywhere or hit space bar to tap Morse code
-                </p>
-                <div className="space-y-1 pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">3 dit lengths</span> = space between characters in words
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">7 dit lengths</span> = space between words
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">14 dit lengths</span> = end of message
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">8 consecutive dits (........)</span> = error signal, clears your message
-                  </p>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
+        <ChatControls />
       </div>
 
-      {chatMode === "ai" && <MorseChatAI key="chatAI" />}
-      {chatMode === "random" && <RandomModeContent />}
-      {chatMode === "friend" && <FriendModeContent />}
+      <div data-testid="chat-mode-content">
+        {chatMode === "ai" && <MorseChatAI key="chatAI" />}
+        {chatMode === "random" && <RandomModeContent />}
+        {chatMode === "friend" && <FriendModeContent />}
+      </div>
     </div>
   );
 }

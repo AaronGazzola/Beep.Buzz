@@ -85,6 +85,7 @@ export default function SignInPage() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                data-testid="sign-in-email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
@@ -105,6 +106,7 @@ export default function SignInPage() {
               </div>
               <Input
                 id="password"
+                data-testid="sign-in-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -114,6 +116,7 @@ export default function SignInPage() {
 
             <Button
               type="submit"
+              data-testid="sign-in-submit"
               className="w-full"
               disabled={signIn.isPending}
             >

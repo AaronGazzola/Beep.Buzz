@@ -9,7 +9,7 @@ import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
 import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MorseCheatSheet } from "@/components/MorseCheatSheet";
+import { ChatControls } from "@/components/ChatControls";
 import { useChatLayoutStore } from "@/app/chat/layout.stores";
 import { Bot, ChevronDown, Shuffle, UserRound } from "lucide-react";
 import {
@@ -35,10 +35,15 @@ interface ChatBubbleProps {
   text: string;
   isVocalizing?: boolean;
   isActive?: boolean;
+  showCharacter?: boolean;
   username?: string | null;
 }
 
-function ChatBubble({ speaker, morse, text, isVocalizing, isActive, username }: ChatBubbleProps) {
+interface ChatBubbleInternalProps extends ChatBubbleProps {
+  testId?: string;
+}
+
+function ChatBubble({ speaker, morse, text, isVocalizing, isActive, showCharacter, username, testId }: ChatBubbleInternalProps) {
   const isBeep = speaker === "beep";
   const bubbleColor = isBeep ? "bg-chart-3" : "bg-accent-foreground";
   const alignment = isBeep ? "self-start" : "self-end";
@@ -48,25 +53,27 @@ function ChatBubble({ speaker, morse, text, isVocalizing, isActive, username }: 
   const displayTextWithSpaces = displayText.split(" ").join(" · ");
 
   return (
-    <div className={cn("max-w-[80%] mb-4 flex items-start gap-3", alignment, isBeep ? "flex-row" : "flex-row-reverse")}>
-      <div className="flex flex-col items-center gap-1 flex-shrink-0">
-        <div className="w-16 h-16">
-          {isBeep ? (
-            <BeepCharacter isSpeaking={true} isVocalizing={isVocalizing} />
-          ) : (
-            <BuzzCharacter isSpeaking={true} isVocalizing={isVocalizing} />
-          )}
+    <div data-testid={testId} className={cn("max-w-[80%] mb-4 flex items-start gap-3", alignment, isBeep ? "flex-row" : "flex-row-reverse")}>
+      {showCharacter && (
+        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+          <div className="w-16 h-16">
+            {isBeep ? (
+              <BeepCharacter isSpeaking={true} isVocalizing={isVocalizing} />
+            ) : (
+              <BuzzCharacter isSpeaking={true} isVocalizing={isVocalizing} />
+            )}
+          </div>
+          <span className={cn("text-sm font-semibold", isBeep ? "text-chart-3" : "text-accent-foreground")}>
+            {username || (isBeep ? "You" : "Partner")}
+          </span>
         </div>
-        <span className={cn("text-sm font-semibold", isBeep ? "text-chart-3" : "text-accent-foreground")}>
-          {username || (isBeep ? "You" : "Partner")}
-        </span>
-      </div>
+      )}
       <div className={cn("rounded-3xl px-6 py-4 text-white relative", bubbleColor, isActive && pointerStyle)}>
-        <div className="font-mono text-2xl mb-2 min-h-[2rem] break-all">
+        <div data-testid={testId ? `${testId}-morse` : undefined} className="font-mono text-2xl mb-2 min-h-[2rem] break-all">
           {morse || "\u00A0"}
         </div>
         {displayText && (
-          <div className="text-base opacity-90 pt-2 mt-2 border-t border-white/20">
+          <div data-testid={testId ? `${testId}-translation` : undefined} className="text-base opacity-90 pt-2 mt-2 border-t border-white/20">
             {displayTextWithSpaces}
           </div>
         )}
@@ -79,6 +86,7 @@ interface HistoryMessage {
   speaker: "beep" | "buzz";
   morse: string;
   text: string;
+  createdAt: string;
 }
 
 interface MorseChatDirectProps {
@@ -226,9 +234,12 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
             speaker: msg.sender_id === user?.id ? ("beep" as const) : ("buzz" as const),
             morse: msg.morse_code,
             text: msg.message,
+            createdAt: msg.created_at ?? new Date().toISOString(),
           }))
       : [];
-    return [...dbMessages, ...localMessages];
+    return [...dbMessages, ...localMessages].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
   })();
 
   useEffect(() => {
@@ -269,7 +280,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     if (!currentMorse || currentMorse.trim().length === 0) return;
 
     const finalText = morseToText(currentMorse);
-    setLocalMessages((prev) => [...prev, { speaker: "beep", morse: currentMorse, text: finalText }]);
+    setLocalMessages((prev) => [...prev, { speaker: "beep", morse: currentMorse, text: finalText, createdAt: new Date().toISOString() }]);
     clearUserInput();
     broadcastSignalRef.current("complete");
 
@@ -283,7 +294,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
     if (!currentMorse || currentMorse.trim().length === 0) return;
 
     const finalText = morseToText(currentMorse);
-    setLocalMessages((prev) => [...prev, { speaker: "buzz", morse: currentMorse, text: finalText }]);
+    setLocalMessages((prev) => [...prev, { speaker: "buzz", morse: currentMorse, text: finalText, createdAt: new Date().toISOString() }]);
     setPartnerInput("");
   }, [setPartnerInput]);
 
@@ -480,10 +491,11 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
             })}
           </PopoverContent>
         </Popover>
-        <MorseCheatSheet />
+        <ChatControls />
       </div>
       <div
         ref={scrollContainerRef}
+        data-testid="chat-area"
         className="flex-1 overflow-y-auto px-4 py-6 flex flex-col cursor-pointer"
         style={{
           WebkitTouchCallout: "none",
@@ -504,35 +516,77 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
             <div className="h-4 w-4 rounded-full border-2 border-muted-foreground border-t-transparent animate-spin" />
           </div>
         )}
-        {allHistoryMessages.map((message, index) => (
-          <ChatBubble
-            key={index}
-            speaker={message.speaker}
-            morse={message.morse}
-            text={message.text}
-            isVocalizing={false}
-            username={message.speaker === "beep" ? myUsername : partnerUsername}
-          />
-        ))}
-        {myMorse && (
-          <ChatBubble
-            speaker="beep"
-            morse={myMorse}
-            text={myText}
-            isVocalizing={isVocalizing}
-            isActive
-            username={myUsername}
-          />
-        )}
-        {partnerMorse && (
-          <ChatBubble
-            speaker="buzz"
-            morse={partnerMorse}
-            text={partnerText}
-            isVocalizing={isPartnerVocalizing}
-            isActive
-            username={partnerUsername}
-          />
+        {allHistoryMessages.length === 0 && !myMorse && !partnerMorse ? (
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div className="w-16 h-16">
+                <BeepCharacter isSpeaking={false} isVocalizing={false} />
+              </div>
+              <span className="text-sm font-semibold text-chart-3">{myUsername}</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <div className="w-16 h-16">
+                <BuzzCharacter isSpeaking={false} isVocalizing={false} />
+              </div>
+              <span className="text-sm font-semibold text-accent-foreground">{partnerUsername}</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {allHistoryMessages.map((message, index) => (
+              <ChatBubble
+                key={index}
+                speaker={message.speaker}
+                morse={message.morse}
+                text={message.text}
+                isVocalizing={false}
+                username={message.speaker === "beep" ? myUsername : partnerUsername}
+                testId={`message-${index}`}
+              />
+            ))}
+            {myMorse && (
+              <ChatBubble
+                speaker="beep"
+                morse={myMorse}
+                text={myText}
+                isVocalizing={isVocalizing}
+                isActive
+                showCharacter
+                username={myUsername}
+                testId="user-morse-input"
+              />
+            )}
+            {partnerMorse && (
+              <ChatBubble
+                speaker="buzz"
+                morse={partnerMorse}
+                text={partnerText}
+                isVocalizing={isPartnerVocalizing}
+                isActive
+                showCharacter
+                username={partnerUsername}
+                testId="partner-morse-input"
+              />
+            )}
+            <div className="flex items-start mb-4">
+              {!myMorse && (
+                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                  <div className="w-16 h-16">
+                    <BeepCharacter isSpeaking={false} isVocalizing={false} />
+                  </div>
+                  <span className="text-sm font-semibold text-chart-3">{myUsername}</span>
+                </div>
+              )}
+              {!partnerMorse && (
+                <div className="flex flex-col items-center gap-1 flex-shrink-0 ml-auto">
+                  <div className="w-16 h-16">
+                    <BuzzCharacter isSpeaking={false} isVocalizing={false} />
+                  </div>
+                  <span className="text-sm font-semibold text-accent-foreground">{partnerUsername}</span>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
