@@ -4,8 +4,6 @@ import { textToMorse, playMorseAudio, morseToText } from "@/lib/morse.utils";
 import { useAuthStore } from "./layout.stores";
 import { useGameStore } from "./page.stores";
 import {
-  getLearnedLettersAction,
-  saveLearnedLettersAction,
   createMatchAction,
   getCurrentMatchAction,
   cancelMatchAction,
@@ -17,7 +15,7 @@ import {
   reportUserAction,
 } from "./page.actions";
 import { supabase } from "@/supabase/browser-client";
-import type { ChatMessage, LearnedLetter, Match, MatchMessage } from "./page.types";
+import type { ChatMessage, Match, MatchMessage } from "./page.types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export function useMorseDemo() {
@@ -52,59 +50,6 @@ export function useMorseDemo() {
     handleTextChange,
     handlePlayAudio,
   };
-}
-
-export function useLearnedLetters() {
-  const { isAuthenticated, user } = useAuthStore();
-  const { setLearnedLetters } = useGameStore();
-
-  const query = useQuery({
-    queryKey: ["learnedLetters", user?.id],
-    queryFn: async () => {
-      const letters = await getLearnedLettersAction();
-      return letters;
-    },
-    enabled: isAuthenticated && !!user,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  useEffect(() => {
-    if (query.data && query.data.length > 0) {
-      setLearnedLetters(query.data);
-    }
-  }, [query.data, setLearnedLetters]);
-
-  return query;
-}
-
-export function useSaveLearnedLetters() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (learnedLetters: LearnedLetter[]) => {
-      return saveLearnedLettersAction(learnedLetters);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["learnedLetters"] });
-    },
-  });
-}
-
-export function useLearnedLettersSync() {
-  const { isAuthenticated } = useAuthStore();
-  const learnedLetters = useGameStore((state) => state.learnedLetters);
-  const saveLearnedLetters = useSaveLearnedLetters();
-  const prevLettersRef = useRef<string>("");
-
-  useEffect(() => {
-    if (!isAuthenticated || learnedLetters.length === 0) return;
-
-    const currentLetters = JSON.stringify(learnedLetters);
-    if (currentLetters === prevLettersRef.current) return;
-
-    prevLettersRef.current = currentLetters;
-    saveLearnedLetters.mutate(learnedLetters);
-  }, [isAuthenticated, learnedLetters, saveLearnedLetters]);
 }
 
 export function useAIChat() {

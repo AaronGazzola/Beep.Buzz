@@ -111,7 +111,7 @@ export function LearnedLetters({ className, isLoading = false }: LearnedLettersP
 
       {!showLoading && showLetters && (
         <>
-          <h3 className="text-lg font-semibold text-center mb-3 text-muted-foreground">
+          <h3 data-testid="learned-letters-heading" className="text-lg font-semibold text-center mb-3 text-muted-foreground">
             Letters You&apos;ve Learned ({learnedLetters.length})
           </h3>
           <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-3">

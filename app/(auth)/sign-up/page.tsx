@@ -78,6 +78,7 @@ export default function SignUpPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                data-testid="sign-up-email"
               />
             </div>
 
@@ -91,6 +92,7 @@ export default function SignUpPage() {
                 onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 required
                 pattern="[a-zA-Z0-9_-]{3,20}"
+                data-testid="sign-up-username"
               />
               {username.length >= 3 && (
                 <div className="flex items-center gap-2 text-sm">
@@ -126,6 +128,7 @@ export default function SignUpPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="pr-10"
+                  data-testid="sign-up-password"
                 />
                 <button
                   type="button"
@@ -162,6 +165,7 @@ export default function SignUpPage() {
                 id="age-confirm"
                 checked={ageConfirmed}
                 onCheckedChange={(checked) => setAgeConfirmed(checked === true)}
+                data-testid="sign-up-age-confirm"
               />
               <label htmlFor="age-confirm" className="text-sm text-muted-foreground cursor-pointer">
                 I am 16 years of age or older
@@ -184,6 +188,7 @@ export default function SignUpPage() {
               type="submit"
               className="w-full"
               disabled={signUp.isPending || !passwordStrong || !isUsernameValid || !username || !ageConfirmed}
+              data-testid="sign-up-submit"
             >
               {signUp.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

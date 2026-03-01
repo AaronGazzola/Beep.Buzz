@@ -1,8 +1,15 @@
 import { supabase } from "@/supabase/browser-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { useAuthStore } from "./layout.stores";
 import { getCurrentProfileAction } from "./layout.actions";
+import {
+  getLearnedLettersAction,
+  saveLearnedLettersAction,
+} from "./page.actions";
+import { useGameStore } from "./page.stores";
 import type { SignOutResult } from "./layout.types";
+import type { LearnedLetter } from "./page.types";
 import { useRouter } from "next/navigation";
 
 export function useAuth() {
@@ -67,6 +74,7 @@ export function useSignOut() {
       return { success: true };
     },
     onSuccess: async () => {
+      useGameStore.getState().setLearnedLetters([]);
       setUser(null);
       setProfile(null);
       queryClient.clear();
@@ -80,4 +88,50 @@ export function useSignOut() {
       console.error(error);
     },
   });
+}
+
+export function useLearnedLetters() {
+  const { isAuthenticated, user } = useAuthStore();
+  const { setLearnedLetters } = useGameStore();
+
+  return useQuery({
+    queryKey: ["learnedLetters", user?.id],
+    queryFn: async () => {
+      const letters = await getLearnedLettersAction();
+      setLearnedLetters(letters);
+      return letters;
+    },
+    enabled: isAuthenticated && !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useSaveLearnedLetters() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (learnedLetters: LearnedLetter[]) => {
+      return saveLearnedLettersAction(learnedLetters);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["learnedLetters"] });
+    },
+  });
+}
+
+export function useLearnedLettersSync() {
+  const { isAuthenticated } = useAuthStore();
+  const learnedLetters = useGameStore((state) => state.learnedLetters);
+  const saveLearnedLetters = useSaveLearnedLetters();
+  const prevLettersRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!isAuthenticated || learnedLetters.length === 0) return;
+
+    const currentLetters = JSON.stringify(learnedLetters);
+    if (currentLetters === prevLettersRef.current) return;
+
+    prevLettersRef.current = currentLetters;
+    saveLearnedLetters.mutate(learnedLetters);
+  }, [isAuthenticated, learnedLetters, saveLearnedLetters]);
 }

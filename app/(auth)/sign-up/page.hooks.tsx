@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { checkUsernameAvailableAction } from "./page.actions";
+import { useGameStore } from "@/app/page.stores";
 
 export function useEmailSignUp() {
   const router = useRouter();
@@ -19,6 +20,8 @@ export function useEmailSignUp() {
       password: string;
       username: string;
     }) => {
+      const learnedLetters = useGameStore.getState().learnedLetters;
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -26,6 +29,7 @@ export function useEmailSignUp() {
           emailRedirectTo: `${window.location.origin}`,
           data: {
             username,
+            pending_learned_letters: learnedLetters,
           },
         },
       });

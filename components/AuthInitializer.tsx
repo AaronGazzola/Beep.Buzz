@@ -1,15 +1,11 @@
 "use client";
 
-import { useAuth } from "@/app/layout.hooks";
-import { useEffect } from "react";
+import { useAuth, useLearnedLetters, useLearnedLettersSync } from "@/app/layout.hooks";
 
 export function AuthInitializer() {
-  const { data: user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-    }
-  }, [user]);
+  useAuth();
+  useLearnedLetters();
+  useLearnedLettersSync();
 
   return null;
 }

@@ -111,10 +111,11 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                data-testid="forgot-password-email"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading} data-testid="forgot-password-submit">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Send Reset Link
             </Button>

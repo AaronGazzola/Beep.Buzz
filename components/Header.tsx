@@ -92,6 +92,7 @@ export function Header() {
                   <Button
                     variant="ghost"
                     className="relative h-8 w-8 rounded-full"
+                    data-testid="user-menu-trigger"
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>{getInitials()}</AvatarFallback>
@@ -122,6 +123,7 @@ export function Header() {
                   <DropdownMenuItem
                     onClick={handleSignOut}
                     className="cursor-pointer text-destructive focus:text-destructive"
+                    data-testid="signout-button"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
