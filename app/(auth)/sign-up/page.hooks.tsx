@@ -26,7 +26,7 @@ export function useEmailSignUp() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/welcome`,
           data: {
             username,
             pending_learned_letters: learnedLetters,
@@ -64,7 +64,7 @@ export function useMagicLinkSignUp() {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/welcome`,
         },
       });
 

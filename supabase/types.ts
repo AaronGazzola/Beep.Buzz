@@ -371,6 +371,7 @@ export type Database = {
       profiles: {
         Row: {
           audio_settings: Json
+          character_settings: Json
           created_at: string
           experience_points: number
           id: string
@@ -386,6 +387,7 @@ export type Database = {
         }
         Insert: {
           audio_settings?: Json
+          character_settings?: Json
           created_at?: string
           experience_points?: number
           id?: string
@@ -401,6 +403,7 @@ export type Database = {
         }
         Update: {
           audio_settings?: Json
+          character_settings?: Json
           created_at?: string
           experience_points?: number
           id?: string

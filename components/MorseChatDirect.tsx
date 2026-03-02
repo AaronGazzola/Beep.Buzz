@@ -7,7 +7,8 @@ import { useGameStore } from "@/app/page.stores";
 import { useCurrentUserProfile } from "@/app/page.hooks";
 import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
-import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
+import { BuzzCharacter } from "./MorseCharacters";
+import { UserCharacter } from "@/components/UserCharacter";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChatControls } from "@/components/ChatControls";
 import { useChatLayoutStore } from "@/app/chat/layout.stores";
@@ -58,7 +59,7 @@ function ChatBubble({ speaker, morse, text, isVocalizing, isActive, showCharacte
         <div className="flex flex-col items-center gap-1 flex-shrink-0">
           <div className="w-16 h-16">
             {isBeep ? (
-              <BeepCharacter isSpeaking={true} isVocalizing={isVocalizing} />
+              <UserCharacter isSpeaking={true} isVocalizing={isVocalizing} />
             ) : (
               <BuzzCharacter isSpeaking={true} isVocalizing={isVocalizing} />
             )}
@@ -520,7 +521,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
           <div className="flex items-start justify-between mb-4">
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
               <div className="w-16 h-16">
-                <BeepCharacter isSpeaking={false} isVocalizing={false} />
+                <UserCharacter isSpeaking={false} isVocalizing={false} />
               </div>
               <span className="text-sm font-semibold text-chart-3">{myUsername}</span>
             </div>
@@ -572,7 +573,7 @@ export function MorseChatDirect({ partnerUserId, partnerUsername, className }: M
               {!myMorse && (
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="w-16 h-16">
-                    <BeepCharacter isSpeaking={false} isVocalizing={false} />
+                    <UserCharacter isSpeaking={false} isVocalizing={false} />
                   </div>
                   <span className="text-sm font-semibold text-chart-3">{myUsername}</span>
                 </div>

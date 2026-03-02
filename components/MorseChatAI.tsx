@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { useGameStore } from "@/app/page.stores";
 import { morseToText, textToMorse, SPEED_WPM } from "@/lib/morse.utils";
 import { useAIChat } from "@/app/page.hooks";
-import { BeepCharacter, BuzzCharacter } from "./MorseCharacters";
+import { BuzzCharacter } from "./MorseCharacters";
+import { UserCharacter } from "@/components/UserCharacter";
 import type { Speaker } from "./MorseCharacters";
 
 interface ChatBubbleProps {
@@ -32,7 +33,7 @@ function ChatBubble({ speaker, morse, text, isComplete, showCharacter, isVocaliz
         <div className="flex flex-col items-center gap-1 flex-shrink-0">
           <div className="w-16 h-16">
             {isBeep ? (
-              <BeepCharacter isSpeaking={true} isVocalizing={isVocalizing} />
+              <UserCharacter isSpeaking={true} isVocalizing={isVocalizing} />
             ) : (
               <BuzzCharacter isSpeaking={true} isVocalizing={isVocalizing} />
             )}
@@ -629,7 +630,7 @@ export function MorseChatAI({ className }: { className?: string }) {
           <div className="flex items-start justify-between mb-4">
             <div className="flex flex-col items-center gap-1 flex-shrink-0">
               <div className="w-16 h-16">
-                <BeepCharacter isSpeaking={false} isVocalizing={isVocalizing} />
+                <UserCharacter isSpeaking={false} isVocalizing={isVocalizing} />
               </div>
               <span className="text-sm font-semibold text-chart-3">Beep</span>
               <span className="text-xs text-muted-foreground">(You)</span>
@@ -665,7 +666,7 @@ export function MorseChatAI({ className }: { className?: string }) {
               {!beepActuallySpeaking && (
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="w-16 h-16">
-                    <BeepCharacter isSpeaking={false} isVocalizing={false} />
+                    <UserCharacter isSpeaking={false} isVocalizing={false} />
                   </div>
                   <span className="text-sm font-semibold text-chart-3">Beep</span>
                   <span className="text-xs text-muted-foreground">(You)</span>

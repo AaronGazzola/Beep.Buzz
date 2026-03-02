@@ -12,7 +12,8 @@ import {
   generateRandomCharacter,
   SPEED_WPM,
 } from "@/lib/morse.utils";
-import { BeepCharacter, BuzzCharacter, SpeechBubble } from "./MorseCharacters";
+import { BuzzCharacter, SpeechBubble } from "./MorseCharacters";
+import { UserCharacter } from "@/components/UserCharacter";
 import type { Speaker } from "./MorseCharacters";
 
 const QUIZ_CHANCE = 1 / 3;
@@ -757,7 +758,7 @@ export function MorseTrainer({ className }: { className?: string }) {
     >
       <div className="flex flex-col items-center gap-1 order-3 lg:order-1">
         <div className="w-24 h-24 md:w-32 md:h-32">
-          <BeepCharacter isSpeaking={currentSpeaker === "beep"} isVocalizing={currentSpeaker === "beep" && isVocalizing} />
+          <UserCharacter isSpeaking={currentSpeaker === "beep"} isVocalizing={currentSpeaker === "beep" && isVocalizing} />
         </div>
         <span className="text-lg font-semibold text-chart-3">Beep</span>
         <span className="text-base text-muted-foreground">(You)</span>
