@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "doppler run -- next dev",
+    "build": "doppler run -- next build",
+    "start": "doppler run -- next start",
     "lint": "eslint",
-    "db:seed": "tsx supabase/seed.ts",
-    "db:reset-seed": "bash scripts/reset-seed.sh",
+    "db:seed": "doppler run -- tsx supabase/seed.ts",
+    "db:reset-seed": "doppler run -- bash scripts/reset-seed.sh",
     "email:build": "npx react-email export && cp out/*.html supabase/templates/",
-    "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "vitest run",
-    "test:e2e": "playwright test"
+    "test": "doppler run -- npm run test:unit && doppler run -- npm run test:e2e",
+    "test:unit": "doppler run -- vitest run",
+    "test:e2e": "doppler run -- playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",

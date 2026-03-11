@@ -8,6 +8,7 @@
 6. Do not run all tests with `npm run test`
 7. Do not run tests in headed mode unless required
 8. Run 1 test at a time (in series, not in parallel) with 1 worker per test (unless the test requires multiple workers)
+9. All unit and e2e tests should provision their own test data in the before function, and should delete all data that was created before or during the test in the after function
 
 ## Test process:
 
