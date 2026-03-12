@@ -1,0 +1,2 @@
+- Add gamification connected to character styles & features
+- default character to match anon character
