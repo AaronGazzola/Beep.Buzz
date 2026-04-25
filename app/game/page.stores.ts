@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { morseToText } from "@/lib/morse.utils";
 import type {
   Zone,
   EntityId,
@@ -12,10 +13,23 @@ import type {
   InteractableKind,
 } from "./page.types";
 
+export type SentMessage = {
+  id: string;
+  morse: string;
+  text: string;
+};
+
 export const PLAYER_WIDTH = 56;
 export const PLAYER_HEIGHT = 72;
 export const INTERACT_RADIUS = 90;
-export const MORSE_BUFFER_MAX = 8;
+
+export function getCurrentLetterSegment(buffer: string): string {
+  if (!buffer) return "";
+  const parts = buffer.split(" ");
+  const last = parts[parts.length - 1] ?? "";
+  if (last === "/" || last === "") return "";
+  return last;
+}
 
 type GameWorldStore = {
   zone: Zone;
@@ -57,8 +71,13 @@ type GameWorldStore = {
   setSignpostDialog: (dialog: SignpostDialog | null) => void;
   setActiveChallenge: (c: ActiveChallenge | null) => void;
   appendMorse: (signal: "." | "-") => void;
+  commitMorseLetter: () => void;
+  commitMorseWord: () => void;
+  finishMorseMessage: () => void;
   clearMorse: () => void;
   clearMorseResult: () => void;
+  removeSentMessage: (id: string) => void;
+  sentMessages: SentMessage[];
 
   initLevel: (
     zone: Zone,
@@ -94,6 +113,7 @@ export const useGameWorldStore = create<GameWorldStore>((set, get) => ({
   signpostDialog: null,
   activeChallenge: null,
   morseBuffer: "",
+  sentMessages: [],
   lastMorseResult: null,
   enemies: {},
   doors: {},
@@ -129,29 +149,64 @@ export const useGameWorldStore = create<GameWorldStore>((set, get) => ({
 
   appendMorse: (signal) => {
     const { morseBuffer, activeChallenge } = get();
-    if (!activeChallenge) {
-      set({ morseBuffer: (morseBuffer + signal).slice(-MORSE_BUFFER_MAX) });
-      return;
-    }
-    const expected = activeChallenge.expectedMorse;
-    const next = (morseBuffer + signal).slice(-Math.max(expected.length, MORSE_BUFFER_MAX));
-    if (next === expected || next.endsWith(expected)) {
-      set({ morseBuffer: "", lastMorseResult: "hit" });
-      if (activeChallenge.kind === "enemy") {
-        get().damageEnemy(activeChallenge.entityId);
-      } else if (activeChallenge.kind === "door") {
-        get().openDoor(activeChallenge.entityId);
+    const nextBuffer = morseBuffer + signal;
+    const currentLetter = getCurrentLetterSegment(nextBuffer);
+
+    if (activeChallenge) {
+      const expected = activeChallenge.expectedMorse;
+      if (currentLetter === expected) {
+        set({ morseBuffer: "", lastMorseResult: "hit" });
+        if (activeChallenge.kind === "enemy") {
+          get().damageEnemy(activeChallenge.entityId);
+        } else if (activeChallenge.kind === "door") {
+          get().openDoor(activeChallenge.entityId);
+        }
+        return;
       }
-      return;
-    }
-    if (next.length >= expected.length) {
-      set({ morseBuffer: "", lastMorseResult: "miss" });
-      if (activeChallenge.kind === "enemy") {
-        get().loseHeart();
+      if (currentLetter.length >= expected.length) {
+        set({ morseBuffer: "", lastMorseResult: "miss" });
+        if (activeChallenge.kind === "enemy") {
+          get().loseHeart();
+        }
+        return;
       }
+    }
+
+    set({ morseBuffer: nextBuffer });
+  },
+
+  commitMorseLetter: () => {
+    const { morseBuffer } = get();
+    if (!morseBuffer) return;
+    if (morseBuffer.endsWith(" ")) return;
+    set({ morseBuffer: morseBuffer + " " });
+  },
+
+  commitMorseWord: () => {
+    const { morseBuffer } = get();
+    if (!morseBuffer.trim()) return;
+    if (morseBuffer.endsWith("/ ")) return;
+    const base = morseBuffer.endsWith(" ") ? morseBuffer : morseBuffer + " ";
+    set({ morseBuffer: base + "/ " });
+  },
+
+  finishMorseMessage: () => {
+    const { morseBuffer, sentMessages } = get();
+    const trimmed = morseBuffer.trim();
+    if (!trimmed) {
+      set({ morseBuffer: "" });
       return;
     }
-    set({ morseBuffer: next });
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const text = morseToText(trimmed).trim();
+    set({
+      morseBuffer: "",
+      sentMessages: [...sentMessages, { id, morse: trimmed, text }],
+    });
+  },
+
+  removeSentMessage: (id) => {
+    set({ sentMessages: get().sentMessages.filter((m) => m.id !== id) });
   },
 
   clearMorse: () => set({ morseBuffer: "" }),
@@ -170,6 +225,7 @@ export const useGameWorldStore = create<GameWorldStore>((set, get) => ({
       interactingWithId: null,
       activeChallenge: null,
       morseBuffer: "",
+      sentMessages: [],
       lastMorseResult: null,
       enemies,
       doors,
@@ -248,6 +304,7 @@ export const useGameWorldStore = create<GameWorldStore>((set, get) => ({
       interactingWithId: null,
       activeChallenge: null,
       morseBuffer: "",
+      sentMessages: [],
       lastMorseResult: null,
     }),
 }));

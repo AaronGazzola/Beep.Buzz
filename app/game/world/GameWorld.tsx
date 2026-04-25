@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { homeLevel } from "../levels/home";
 import { useGameWorldStore, PLAYER_WIDTH } from "../page.stores";
 import { useGameLoop } from "../engine/useGameLoop";
@@ -23,9 +23,12 @@ const CAMERA_LERP = 0.15;
 
 export default function GameWorld() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
+  const cameraXRef = useRef(0);
+  const viewportRef = useRef({ width: 0, height: 0 });
+
   const level = homeLevel;
 
-  const playerPos = useGameWorldStore((s) => s.playerPos);
   const trainerOpen = useGameWorldStore((s) => s.trainerOpen);
   const dialog = useGameWorldStore((s) => s.signpostDialog);
   const isAlive = useGameWorldStore((s) => s.isAlive);
@@ -35,10 +38,6 @@ export default function GameWorld() {
   const collectChest = useGameWorldStore((s) => s.collectChest);
   const nearbyId = useGameWorldStore((s) => s.nearbyEntityId);
   const nearbyKind = useGameWorldStore((s) => s.nearbyEntityKind);
-
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const cameraXRef = useRef(0);
-  const [cameraX, setCameraX] = useState(0);
 
   const { update, handleWorldClick } = usePlayerMovement(level);
 
@@ -61,37 +60,35 @@ export default function GameWorld() {
   useEffect(() => {
     const onResize = () => {
       if (!containerRef.current) return;
-      setViewport({
+      viewportRef.current = {
         width: containerRef.current.clientWidth,
         height: containerRef.current.clientHeight,
-      });
+      };
     };
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const cameraTarget = useMemo(() => {
-    if (viewport.width === 0) return 0;
-    const target = playerPos.x + PLAYER_WIDTH / 2 - viewport.width / 2;
-    const max = Math.max(0, level.width - viewport.width);
-    return Math.max(0, Math.min(target, max));
-  }, [playerPos.x, viewport.width, level.width]);
-
-  useEffect(() => {
-    cameraXRef.current = cameraTarget;
-    setCameraX(cameraTarget);
-  }, [viewport.width, level.width]);
-
   useGameLoop(
     useCallback(
       (dt: number) => {
         update(dt);
-        const next = cameraXRef.current + (cameraTarget - cameraXRef.current) * CAMERA_LERP;
-        cameraXRef.current = next;
-        setCameraX(next);
+
+        const playerPos = useGameWorldStore.getState().playerPos;
+        const vw = viewportRef.current.width;
+        if (vw === 0) return;
+
+        const target = playerPos.x + PLAYER_WIDTH / 2 - vw / 2;
+        const max = Math.max(0, level.width - vw);
+        const clamped = Math.max(0, Math.min(target, max));
+        cameraXRef.current += (clamped - cameraXRef.current) * CAMERA_LERP;
+
+        if (worldRef.current) {
+          worldRef.current.style.transform = `translate3d(${-cameraXRef.current}px, 0, 0)`;
+        }
       },
-      [update, cameraTarget]
+      [update, level.width]
     ),
     !trainerOpen && !dialog && isAlive
   );
@@ -137,11 +134,11 @@ export default function GameWorld() {
       onTouchEnd={onTouch}
     >
       <div
+        ref={worldRef}
         className="absolute top-0 left-0"
         style={{
           width: level.width,
           height: level.height,
-          transform: `translate3d(${-cameraX}px, 0, 0)`,
           willChange: "transform",
         }}
       >

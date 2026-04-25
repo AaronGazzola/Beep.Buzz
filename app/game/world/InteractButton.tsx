@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useGameWorldStore, PLAYER_WIDTH, PLAYER_HEIGHT } from "../page.stores";
 import { cn } from "@/lib/utils";
 
@@ -16,21 +17,41 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export function InteractButton({ onInteract }: InteractButtonProps) {
-  const playerPos = useGameWorldStore((s) => s.playerPos);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const nearbyId = useGameWorldStore((s) => s.nearbyEntityId);
   const nearbyKind = useGameWorldStore((s) => s.nearbyEntityKind);
   const trainerOpen = useGameWorldStore((s) => s.trainerOpen);
   const dialog = useGameWorldStore((s) => s.signpostDialog);
 
-  if (!nearbyId || !nearbyKind || trainerOpen || dialog) return null;
-  if (nearbyKind === "enemy" || nearbyKind === "door") return null;
+  const visible =
+    !!nearbyId &&
+    !!nearbyKind &&
+    !trainerOpen &&
+    !dialog &&
+    nearbyKind !== "enemy" &&
+    nearbyKind !== "door";
+
+  useEffect(() => {
+    if (!visible) return;
+    const apply = () => {
+      const el = buttonRef.current;
+      if (!el) return;
+      const { playerPos } = useGameWorldStore.getState();
+      el.style.left = `${playerPos.x + PLAYER_WIDTH / 2}px`;
+      el.style.top = `${playerPos.y + PLAYER_HEIGHT + 12}px`;
+    };
+    apply();
+    const unsubscribe = useGameWorldStore.subscribe(apply);
+    return unsubscribe;
+  }, [visible]);
+
+  if (!visible || !nearbyKind) return null;
 
   const label = KIND_LABEL[nearbyKind] ?? "Interact";
-  const left = playerPos.x + PLAYER_WIDTH / 2;
-  const top = playerPos.y + PLAYER_HEIGHT + 12;
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={(e) => {
         e.stopPropagation();
@@ -46,7 +67,7 @@ export function InteractButton({ onInteract }: InteractButtonProps) {
         "bg-indigo-600 text-white border-2 border-white shadow-lg",
         "hover:bg-indigo-700 active:scale-95 transition"
       )}
-      style={{ left, top }}
+      style={{ willChange: "left, top" }}
     >
       {label}
     </button>

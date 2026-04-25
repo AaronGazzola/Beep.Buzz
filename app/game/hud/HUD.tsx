@@ -6,8 +6,6 @@ import { useGameWorldStore } from "../page.stores";
 export function HUD() {
   const hearts = useGameWorldStore((s) => s.hearts);
   const zone = useGameWorldStore((s) => s.zone);
-  const morseBuffer = useGameWorldStore((s) => s.morseBuffer);
-  const activeChallenge = useGameWorldStore((s) => s.activeChallenge);
   const learnedLetters = useGameWorldStore((s) => s.learnedLetters);
 
   return (
@@ -37,22 +35,7 @@ export function HUD() {
         {zone === "home" ? "Home" : zone}
       </div>
 
-      <div className="flex flex-col items-end gap-2 min-w-[120px]">
-        {activeChallenge && (
-          <div
-            className={cn(
-              "bg-yellow-50 border-2 border-yellow-400 rounded-2xl px-3 py-2 shadow-md min-w-[120px] text-center"
-            )}
-          >
-            <div className="text-[10px] uppercase tracking-wider text-yellow-700 font-semibold">
-              Tap morse
-            </div>
-            <div className="font-mono text-xl tracking-widest text-slate-900 min-h-[24px]">
-              {morseBuffer || "·"}
-            </div>
-          </div>
-        )}
-      </div>
+      <div className="min-w-[120px]" />
     </div>
   );
 }

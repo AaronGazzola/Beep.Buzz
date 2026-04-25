@@ -3,7 +3,7 @@
 import { MORSE_ALPHABET } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
 import type { DoorConfig } from "../page.types";
-import { useGameWorldStore } from "../page.stores";
+import { useGameWorldStore, getCurrentLetterSegment } from "../page.stores";
 import { SpeechBubble } from "./SpeechBubble";
 
 interface DoorProps {
@@ -57,8 +57,8 @@ export function Door({ door }: DoorProps) {
             {showMorse && (
               <div className="font-mono text-2xl leading-none tracking-widest">{expectedMorse}</div>
             )}
-            {isFocus && morseBuffer && (
-              <div className="mt-1 text-xs font-mono text-slate-500">{morseBuffer}</div>
+            {isFocus && getCurrentLetterSegment(morseBuffer) && (
+              <div className="mt-1 text-xs font-mono text-slate-500">{getCurrentLetterSegment(morseBuffer)}</div>
             )}
           </SpeechBubble>
         </div>
