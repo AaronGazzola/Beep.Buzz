@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BookOpen, Gamepad2, LogOut, MessagesSquare, Trash2, User } from "lucide-react";
+import { Gamepad2, LogOut, MessagesSquare, Trash2, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -22,8 +22,7 @@ export function Header() {
   const signOut = useSignOut();
   const pathname = usePathname();
   const isChatActive = pathname.startsWith("/chat");
-  const isLearnActive = pathname === "/";
-  const isPlayActive = pathname.startsWith("/game");
+  const isPlayActive = pathname === "/";
 
   const handleSignOut = () => {
     signOut.mutate();
@@ -60,15 +59,15 @@ export function Header() {
               href="/"
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 text-sm font-extrabold rounded-md transition-colors",
-                isLearnActive ? "" : "hover:bg-black/5",
+                isPlayActive ? "" : "hover:bg-black/5",
               )}
               style={{
-                backgroundColor: isLearnActive ? "var(--color-chart-4)" : "transparent",
-                color: isLearnActive ? "white" : "var(--color-chart-4)",
+                backgroundColor: isPlayActive ? "var(--color-chart-4)" : "transparent",
+                color: isPlayActive ? "white" : "var(--color-chart-4)",
               }}
             >
-              <BookOpen className="hidden xs:block h-4 w-4" strokeWidth={2.5} />
-              Learn
+              <Gamepad2 className="hidden xs:block h-4 w-4" strokeWidth={2.5} />
+              Play
             </Link>
             <Link
               href="/chat"
@@ -83,20 +82,6 @@ export function Header() {
             >
               <MessagesSquare className="hidden xs:block h-4 w-4" strokeWidth={2.5} />
               Chat
-            </Link>
-            <Link
-              href="/game"
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 text-sm font-extrabold rounded-md transition-colors",
-                isPlayActive ? "" : "hover:bg-black/5",
-              )}
-              style={{
-                backgroundColor: isPlayActive ? "var(--color-chart-4)" : "transparent",
-                color: isPlayActive ? "white" : "var(--color-chart-4)",
-              }}
-            >
-              <Gamepad2 className="hidden xs:block h-4 w-4" strokeWidth={2.5} />
-              Play
             </Link>
           </div>
 
