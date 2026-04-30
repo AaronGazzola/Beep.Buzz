@@ -3,9 +3,9 @@
 import { use } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/app/layout.stores";
-import { useCurrentUserProfile } from "@/app/page.hooks";
+import { useCurrentUserProfile } from "@/app/morse.hooks";
 import { useQuery } from "@tanstack/react-query";
-import { getProfileByUsernameAction } from "@/app/page.actions";
+import { getProfileByUsernameAction } from "@/app/morse.actions";
 import { MorseChatDirect } from "@/components/MorseChatDirect";
 import { Button } from "@/components/ui/button";
 

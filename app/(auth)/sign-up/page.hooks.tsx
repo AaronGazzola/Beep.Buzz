@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { checkUsernameAvailableAction } from "./page.actions";
-import { useGameStore } from "@/app/page.stores";
+import { useGameStore } from "@/app/morse.stores";
 
 export function useEmailSignUp() {
   const router = useRouter();

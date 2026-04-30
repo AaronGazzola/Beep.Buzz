@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/layout.stores";
-import { useGameStore } from "@/app/page.stores";
-import { useCurrentUserProfile } from "@/app/page.hooks";
+import { useGameStore } from "@/app/morse.stores";
+import { useCurrentUserProfile } from "@/app/morse.hooks";
 import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";
 import { BuzzCharacter } from "./MorseCharacters";

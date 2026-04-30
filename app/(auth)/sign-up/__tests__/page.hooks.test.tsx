@@ -13,7 +13,7 @@ const mockUseGameStore = vi.fn(() => ({ learnedLetters: [] }));
   learnedLetters: [],
 }));
 
-vi.mock("@/app/page.stores", () => ({
+vi.mock("@/app/morse.stores", () => ({
   useGameStore: Object.assign(
     (...args: unknown[]) => mockUseGameStore(...args),
     { getState: () => (mockUseGameStore as any).getState?.() },

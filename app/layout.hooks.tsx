@@ -6,10 +6,10 @@ import { getCurrentProfileAction } from "./layout.actions";
 import {
   getLearnedLettersAction,
   saveLearnedLettersAction,
-} from "./page.actions";
-import { useGameStore } from "./page.stores";
+} from "./morse.actions";
+import { useGameStore } from "./morse.stores";
 import type { SignOutResult } from "./layout.types";
-import type { LearnedLetter } from "./page.types";
+import type { LearnedLetter } from "./morse.types";
 import { useRouter } from "next/navigation";
 
 export function useAuth() {

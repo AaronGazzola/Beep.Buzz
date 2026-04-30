@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/layout.stores";
-import { useProfileByUserId } from "@/app/page.hooks";
+import { useProfileByUserId } from "@/app/morse.hooks";
 import { MorseChatAI } from "@/components/MorseChatAI";
 import { ChatControls } from "@/components/ChatControls";
 import { Button } from "@/components/ui/button";

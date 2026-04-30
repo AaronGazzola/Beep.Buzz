@@ -1,219 +1,170 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { ChallengeAttempt, Difficulty, GameMode, TrainingStep, GameState, PracticeType, QuizMode, TrainerMode, LearnedLetter, InterfaceMode, ChatMessage, MorseSpeed } from "./page.types";
+import { ALIGNMENT_CONFIG } from "./page.types";
+import type {
+  CellRuntimeState,
+  CellStatus,
+  Currencies,
+  LevelData,
+  Position,
+} from "./page.types";
 
-interface GameStore extends GameState {
-  setStep: (step: TrainingStep) => void;
-  setMode: (mode: GameMode) => void;
-  setPracticeType: (practiceType: PracticeType) => void;
-  setDifficulty: (difficulty: Difficulty) => void;
-  setChallenge: (challenge: string, morse: string) => void;
-  setUserInput: (input: string) => void;
-  appendToUserInput: (signal: string) => void;
-  addCharacterGap: () => void;
-  addWordGap: () => void;
-  clearUserInput: () => void;
-  setUserTextInput: (input: string) => void;
-  clearUserTextInput: () => void;
-  setIsCorrect: (isCorrect: boolean | null) => void;
-  setIsPlaying: (isPlaying: boolean) => void;
-  incrementScore: () => void;
-  incrementStreak: () => void;
-  resetStreak: () => void;
-  startSession: () => void;
-  startChallenge: () => void;
-  recordAttempt: (attempt: Omit<ChallengeAttempt, "attemptNumber" | "timestamp">) => void;
-  getSessionSummary: () => {
-    totalAttempts: number;
-    correctAttempts: number;
-    accuracy: number;
-    maxStreak: number;
-    score: number;
-    attempts: ChallengeAttempt[];
-  };
-  resetGame: () => void;
-  addLearnedLetter: (letter: string) => void;
-  incrementPracticeCount: (letter: string) => void;
-  setLearnedLetters: (letters: LearnedLetter[]) => void;
-  setQuizMode: (mode: QuizMode) => void;
-  setTrainerMode: (mode: TrainerMode) => void;
-  setInterfaceMode: (mode: InterfaceMode) => void;
-  addChatMessage: (message: ChatMessage) => void;
-  updateLastChatMessage: (morse: string, text: string, isComplete: boolean) => void;
-  removeLastChatMessage: () => void;
-  clearChatMessages: () => void;
-  setMorseSpeed: (speed: MorseSpeed) => void;
-  morseVolume: number;
-  setMorseVolume: (volume: number) => void;
-  setPartnerInput: (input: string) => void;
-  appendToPartnerInput: (signal: string) => void;
-  partnerInput: string;
+export const PLAYER_WIDTH = 80;
+export const PLAYER_HEIGHT = 96;
+export const PROXIMITY_RADIUS = 120;
+export const PLAYER_SPEED = 280;
+export const ARRIVE_THRESHOLD = 6;
+
+export type CurrencyBurst = {
+  id: string;
+  beep: number;
+  buzz: number;
+};
+
+interface GameWorldStore {
+  level: LevelData | null;
+  playerPos: Position;
+  facing: 1 | -1;
+  moveTarget: number | null;
+  keyDir: -1 | 0 | 1;
+  cells: Record<string, CellRuntimeState>;
+  currencies: Currencies;
+  currencyBursts: CurrencyBurst[];
+  targetCellId: string | null;
+  initLevel: (level: LevelData) => void;
+  setPlayerPos: (pos: Position) => void;
+  setFacing: (facing: 1 | -1) => void;
+  setMoveTarget: (x: number | null) => void;
+  setKeyDir: (dir: -1 | 0 | 1) => void;
+  setTargetCell: (id: string | null) => void;
+  appendInput: (cellId: string, signal: "." | "-") => void;
+  clearInput: (cellId: string) => void;
+  shakeCell: (cellId: string) => void;
+  setCellStatus: (cellId: string, status: CellStatus) => void;
+  addCurrencies: (delta: { beep?: number; buzz?: number }) => void;
+  pushBurst: (burst: Omit<CurrencyBurst, "id">) => void;
+  consumeBurst: (id: string) => void;
 }
 
-export const useGameStore = create<GameStore>()(
-  persist(
-    (set, get) => ({
-      step: "ready",
-      mode: "training",
-      practiceType: "text-to-morse",
-      difficulty: "letter",
-      currentChallenge: "",
-      currentMorse: "",
-      userInput: "",
-      userTextInput: "",
-      isCorrect: null,
-      isPlaying: false,
-      score: 0,
-      streak: 0,
-      maxStreak: 0,
-      attempts: [],
-      sessionStartTime: null,
-      challengeStartTime: null,
-      learnedLetters: [],
-      quizMode: null,
-      lastLearnedLetter: null,
-      trainerMode: "mixed",
-      interfaceMode: "training",
-      chatMessages: [],
-      morseSpeed: "slow",
-      morseVolume: 80,
-      partnerInput: "",
+const INITIAL_PLAYER_POS: Position = { x: 0, y: 0 };
 
-  setStep: (step) => set({ step }),
-  setMode: (mode) => set({ mode, step: "ready", score: 0, streak: 0, maxStreak: 0, attempts: [] }),
-  setPracticeType: (practiceType) => set({ practiceType }),
-  setDifficulty: (difficulty) => set({ difficulty }),
-  setChallenge: (challenge, morse) =>
-    set({ currentChallenge: challenge, currentMorse: morse }),
-  setUserInput: (input) => set({ userInput: input }),
-  appendToUserInput: (signal) =>
-    set((state) => ({ userInput: state.userInput + signal })),
-  addCharacterGap: () =>
-    set((state) => {
-      if (state.userInput.length === 0) return state;
-      if (state.userInput.endsWith(" ")) return state;
-      if (state.userInput.endsWith("/")) return state;
-      return { userInput: state.userInput + " " };
-    }),
-  addWordGap: () =>
-    set((state) => {
-      if (state.userInput.length === 0) return state;
-      if (state.userInput.endsWith("/")) return state;
-      const trimmed = state.userInput.trimEnd();
-      return { userInput: trimmed + " / " };
-    }),
-  clearUserInput: () => set({ userInput: "" }),
-  setUserTextInput: (input) => set({ userTextInput: input }),
-  clearUserTextInput: () => set({ userTextInput: "" }),
-  setIsCorrect: (isCorrect) => set({ isCorrect }),
-  setIsPlaying: (isPlaying) => set({ isPlaying }),
-  incrementScore: () => set((state) => ({ score: state.score + 1 })),
-  incrementStreak: () =>
-    set((state) => {
-      const newStreak = state.streak + 1;
-      return {
-        streak: newStreak,
-        maxStreak: Math.max(state.maxStreak, newStreak),
+export const useGameWorldStore = create<GameWorldStore>((set) => ({
+  level: null,
+  playerPos: INITIAL_PLAYER_POS,
+  facing: 1,
+  moveTarget: null,
+  keyDir: 0,
+  cells: {},
+  currencies: { beep: 0, buzz: 0 },
+  currencyBursts: [],
+  targetCellId: null,
+
+  initLevel: (level) => {
+    const cells: Record<string, CellRuntimeState> = {};
+    for (const cell of level.cells) {
+      cells[cell.id] = {
+        status: "dormant",
+        inputBuffer: "",
+        shake: 0,
+        activatedAt: null,
       };
-    }),
-  resetStreak: () => set({ streak: 0 }),
-  startSession: () => set({ sessionStartTime: Date.now(), attempts: [], score: 0, streak: 0, maxStreak: 0 }),
-  startChallenge: () => set({ challengeStartTime: Date.now() }),
-  recordAttempt: (attempt) =>
-    set((state) => {
-      const responseTimeMs = state.challengeStartTime
-        ? Date.now() - state.challengeStartTime
-        : undefined;
-      const newAttempt: ChallengeAttempt = {
-        ...attempt,
-        attemptNumber: state.attempts.length + 1,
-        timestamp: Date.now(),
-        responseTimeMs,
-      };
-      return { attempts: [...state.attempts, newAttempt] };
-    }),
-  getSessionSummary: () => {
-    const state = get();
-    const totalAttempts = state.attempts.length;
-    const correctAttempts = state.attempts.filter((a) => a.isCorrect).length;
-    const accuracy = totalAttempts > 0 ? (correctAttempts / totalAttempts) * 100 : 0;
-    return {
-      totalAttempts,
-      correctAttempts,
-      accuracy,
-      maxStreak: state.maxStreak,
-      score: state.score,
-      attempts: state.attempts,
-    };
-  },
-  resetGame: () =>
-    set({
-      step: "ready",
-      currentChallenge: "",
-      currentMorse: "",
-      userInput: "",
-      userTextInput: "",
-      isCorrect: null,
-      isPlaying: false,
-      score: 0,
-      streak: 0,
-      maxStreak: 0,
-      attempts: [],
-      sessionStartTime: null,
-      challengeStartTime: null,
-      quizMode: null,
-    }),
-  addLearnedLetter: (letter) =>
-    set((state) => {
-      const upperLetter = letter.toUpperCase();
-      const exists = state.learnedLetters.some((l) => l.letter === upperLetter);
-      if (exists) {
-        return { lastLearnedLetter: upperLetter };
-      }
-      return {
-        learnedLetters: [...state.learnedLetters, { letter: upperLetter, practiceCount: 0 }],
-        lastLearnedLetter: upperLetter,
-      };
-    }),
-  incrementPracticeCount: (letter) =>
-    set((state) => {
-      const upperLetter = letter.toUpperCase();
-      return {
-        learnedLetters: state.learnedLetters.map((l) =>
-          l.letter === upperLetter ? { ...l, practiceCount: l.practiceCount + 1 } : l
-        ),
-      };
-    }),
-  setLearnedLetters: (letters) => set({ learnedLetters: letters }),
-  setQuizMode: (mode) => set({ quizMode: mode }),
-  setTrainerMode: (mode) => set({ trainerMode: mode }),
-  setInterfaceMode: (mode) => set({ interfaceMode: mode }),
-  addChatMessage: (message) => set((state) => ({ chatMessages: [...state.chatMessages, message] })),
-  updateLastChatMessage: (morse, text, isComplete) =>
-    set((state) => {
-      const messages = [...state.chatMessages];
-      if (messages.length > 0) {
-        messages[messages.length - 1] = { ...messages[messages.length - 1], morse, text, isComplete };
-      }
-      return { chatMessages: messages };
-    }),
-  removeLastChatMessage: () => set((state) => ({ chatMessages: state.chatMessages.slice(0, -1) })),
-  clearChatMessages: () => set({ chatMessages: [] }),
-  setMorseSpeed: (speed) => set({ morseSpeed: speed }),
-  setMorseVolume: (volume) => set({ morseVolume: volume }),
-  setPartnerInput: (input) => set({ partnerInput: input }),
-  appendToPartnerInput: (signal) =>
-    set((state) => ({ partnerInput: state.partnerInput + signal })),
-    }),
-    {
-      name: "game-storage",
-      partialize: (state) => ({
-        learnedLetters: state.learnedLetters,
-        trainerMode: state.trainerMode,
-        interfaceMode: state.interfaceMode,
-        morseSpeed: state.morseSpeed,
-        morseVolume: state.morseVolume,
-      }),
     }
-  )
-);
+    set({
+      level,
+      playerPos: level.playerStart,
+      facing: 1,
+      moveTarget: null,
+      keyDir: 0,
+      cells,
+      currencies: { beep: 0, buzz: 0 },
+      currencyBursts: [],
+      targetCellId: null,
+    });
+  },
+
+  setPlayerPos: (playerPos) => set({ playerPos }),
+  setFacing: (facing) => set({ facing }),
+  setMoveTarget: (moveTarget) => set({ moveTarget }),
+  setKeyDir: (keyDir) => set({ keyDir }),
+  setTargetCell: (targetCellId) =>
+    set((state) => {
+      if (state.targetCellId === targetCellId) return state;
+      const next: Partial<GameWorldStore> = { targetCellId };
+      if (state.targetCellId && state.cells[state.targetCellId]) {
+        next.cells = {
+          ...state.cells,
+          [state.targetCellId]: { ...state.cells[state.targetCellId], inputBuffer: "" },
+        };
+      }
+      return next as GameWorldStore;
+    }),
+
+  appendInput: (cellId, signal) =>
+    set((state) => {
+      const cell = state.cells[cellId];
+      if (!cell || cell.status !== "dormant") return state;
+      return {
+        cells: {
+          ...state.cells,
+          [cellId]: { ...cell, inputBuffer: cell.inputBuffer + signal },
+        },
+      };
+    }),
+
+  clearInput: (cellId) =>
+    set((state) => {
+      const cell = state.cells[cellId];
+      if (!cell) return state;
+      return {
+        cells: { ...state.cells, [cellId]: { ...cell, inputBuffer: "" } },
+      };
+    }),
+
+  shakeCell: (cellId) =>
+    set((state) => {
+      const cell = state.cells[cellId];
+      if (!cell) return state;
+      return {
+        cells: { ...state.cells, [cellId]: { ...cell, shake: cell.shake + 1, inputBuffer: "" } },
+      };
+    }),
+
+  setCellStatus: (cellId, status) =>
+    set((state) => {
+      const cell = state.cells[cellId];
+      if (!cell) return state;
+      return {
+        cells: {
+          ...state.cells,
+          [cellId]: {
+            ...cell,
+            status,
+            activatedAt: status === "active" && cell.activatedAt === null ? performance.now() : cell.activatedAt,
+            inputBuffer: status === "dormant" ? cell.inputBuffer : "",
+          },
+        },
+      };
+    }),
+
+  addCurrencies: (delta) =>
+    set((state) => ({
+      currencies: {
+        beep: state.currencies.beep + (delta.beep ?? 0),
+        buzz: state.currencies.buzz + (delta.buzz ?? 0),
+      },
+    })),
+
+  pushBurst: (burst) =>
+    set((state) => ({
+      currencyBursts: [
+        ...state.currencyBursts,
+        { id: `${performance.now()}-${Math.random().toString(36).slice(2, 6)}`, ...burst },
+      ],
+    })),
+
+  consumeBurst: (id) =>
+    set((state) => ({
+      currencyBursts: state.currencyBursts.filter((b) => b.id !== id),
+    })),
+}));
+
+export { ALIGNMENT_CONFIG };

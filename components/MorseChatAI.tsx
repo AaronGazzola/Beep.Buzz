@@ -2,9 +2,9 @@
 
 import { useEffect, useLayoutEffect, useRef, useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useGameStore } from "@/app/page.stores";
+import { useGameStore } from "@/app/morse.stores";
 import { morseToText, textToMorse, SPEED_WPM } from "@/lib/morse.utils";
-import { useAIChat } from "@/app/page.hooks";
+import { useAIChat } from "@/app/morse.hooks";
 import { BuzzCharacter } from "./MorseCharacters";
 import { UserCharacter } from "@/components/UserCharacter";
 import type { Speaker } from "./MorseCharacters";

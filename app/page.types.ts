@@ -1,80 +1,51 @@
-export type Difficulty = "letter" | "word" | "sentence";
+export type Position = { x: number; y: number };
 
-export type TrainingStep = "ready" | "demonstrate" | "your-turn" | "user-input" | "feedback";
+export type CellAlignment = "beep" | "buzz" | "mixed";
 
-export type Speaker = "beep" | "buzz";
+export type CellStatus = "dormant" | "activating" | "active";
 
-export type GameMode = "training" | "practice";
+export type BuildKind = "sapling" | "turbine" | "combined";
 
-export type PracticeType = "text-to-morse" | "morse-to-text";
-
-export type QuizMode = "letter-to-morse" | "morse-to-letter" | null;
-
-export type TrainerMode = "learn" | "practice" | "mixed";
-
-export type InterfaceMode = "training" | "chatAI";
-
-export type MorseSpeed = "slow" | "medium" | "fast" | "fastest";
-
-export interface ChatMessage {
-  speaker: Speaker;
-  morse: string;
-  text: string;
-  isComplete: boolean;
+export interface Currencies {
+  beep: number;
+  buzz: number;
 }
 
-export interface LearnedLetter {
-  letter: string;
-  practiceCount: number;
+export interface CellData {
+  id: string;
+  x: number;
+  prompt: string;
+  align: CellAlignment;
+  build: BuildKind;
 }
 
-export interface ChallengeAttempt {
-  challengeText: string;
-  expectedMorse: string;
-  userInput: string;
-  isCorrect: boolean;
-  challengeType: Difficulty;
-  attemptNumber: number;
-  responseTimeMs?: number;
-  timestamp: number;
+export interface CellRuntimeState {
+  status: CellStatus;
+  inputBuffer: string;
+  shake: number;
+  activatedAt: number | null;
 }
 
-export interface GameState {
-  step: TrainingStep;
-  mode: GameMode;
-  practiceType: PracticeType;
-  difficulty: Difficulty;
-  currentChallenge: string;
-  currentMorse: string;
-  userInput: string;
-  userTextInput: string;
-  isCorrect: boolean | null;
-  isPlaying: boolean;
-  score: number;
-  streak: number;
-  maxStreak: number;
-  attempts: ChallengeAttempt[];
-  sessionStartTime: number | null;
-  challengeStartTime: number | null;
-  learnedLetters: LearnedLetter[];
-  quizMode: QuizMode;
-  lastLearnedLetter: string | null;
-  trainerMode: TrainerMode;
-  interfaceMode: InterfaceMode;
-  chatMessages: ChatMessage[];
-  morseSpeed: MorseSpeed;
+export interface LevelData {
+  id: string;
+  width: number;
+  height: number;
+  groundY: number;
+  playerStart: Position;
+  background: string;
+  groundColor: string;
+  cells: CellData[];
 }
 
-export interface MorseInputState {
-  isPressed: boolean;
-  pressStartTime: number | null;
-  lastReleaseTime: number | null;
-  currentSignals: string;
+export interface CurrencyConfig {
+  burstBeep: number;
+  burstBuzz: number;
+  trickleBeep: number;
+  trickleBuzz: number;
 }
 
-import type { Tables } from "@/supabase/types";
-
-export type Match = Tables<"matches">;
-export type MatchMessage = Tables<"match_messages">;
-export type Profile = Tables<"profiles">;
-export type MatchState = "searching" | "matched" | "chatting" | "ended" | "timeout";
+export const ALIGNMENT_CONFIG: Record<CellAlignment, CurrencyConfig> = {
+  beep: { burstBeep: 10, burstBuzz: 0, trickleBeep: 0.5, trickleBuzz: 0 },
+  buzz: { burstBeep: 0, burstBuzz: 10, trickleBeep: 0, trickleBuzz: 0.5 },
+  mixed: { burstBeep: 5, burstBuzz: 5, trickleBeep: 0.25, trickleBuzz: 0.25 },
+};

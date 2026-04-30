@@ -1,6 +1,6 @@
 "use client";
 
-import { useGameStore } from "@/app/page.stores";
+import { useGameStore } from "@/app/morse.stores";
 import { useAuthStore } from "@/app/layout.stores";
 import { textToMorse } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";

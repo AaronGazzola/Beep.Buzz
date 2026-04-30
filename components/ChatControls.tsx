@@ -1,6 +1,6 @@
 "use client";
 
-import { useGameStore } from "@/app/page.stores";
+import { useGameStore } from "@/app/morse.stores";
 import {
   Popover,
   PopoverContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Gauge, Info, Volume2 } from "lucide-react";
-import type { MorseSpeed } from "@/app/page.types";
+import type { MorseSpeed } from "@/app/morse.types";
 
 const speedSteps: MorseSpeed[] = ["slow", "medium", "fast", "fastest"];
 

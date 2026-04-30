@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore } from "@/app/layout.stores";
-import { useMatchmakingPresence, useCurrentMatch, useCurrentUserProfile, useProfileByUserId, useReportUser } from "@/app/page.hooks";
-import { useGameStore } from "@/app/page.stores";
+import { useMatchmakingPresence, useCurrentMatch, useCurrentUserProfile, useProfileByUserId, useReportUser } from "@/app/morse.hooks";
+import { useGameStore } from "@/app/morse.stores";
 import { supabase } from "@/supabase/browser-client";
 import { morseToText, SPEED_WPM } from "@/lib/morse.utils";
 import { cn } from "@/lib/utils";

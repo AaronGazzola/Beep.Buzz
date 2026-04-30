@@ -43,7 +43,7 @@ vi.mock("@/app/layout.stores", () => ({
   useAuthStore: (...args: unknown[]) => mockUseAuthStore(...args),
 }));
 
-vi.mock("@/app/page.stores", () => ({
+vi.mock("@/app/morse.stores", () => ({
   useGameStore: Object.assign(
     (...args: unknown[]) => mockUseGameStore(...args),
     { getState: () => (mockUseGameStore as any).getState?.() },
@@ -54,7 +54,7 @@ vi.mock("@/app/layout.actions", () => ({
   getCurrentProfileAction: (...args: unknown[]) => mockGetCurrentProfileAction(...args),
 }));
 
-vi.mock("@/app/page.actions", () => ({
+vi.mock("@/app/morse.actions", () => ({
   getLearnedLettersAction: (...args: unknown[]) => mockGetLearnedLettersAction(...args),
   saveLearnedLettersAction: (...args: unknown[]) => mockSaveLearnedLettersAction(...args),
 }));

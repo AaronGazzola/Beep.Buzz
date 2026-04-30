@@ -5,7 +5,7 @@ import { RotateCcw, X, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useGameStore } from "@/app/page.stores";
+import { useGameStore } from "@/app/morse.stores";
 import {
   textToMorse,
   playMorseAudio,
