@@ -14,6 +14,7 @@ export interface CustomCharacterProps {
   shoes: number;
   isSpeaking?: boolean;
   className?: string;
+  getSquash?: () => { sx: number; sy: number };
 }
 
 function useAnimationFrame(callback: (time: number) => void) {
@@ -319,10 +320,13 @@ export function CustomCharacter({
   shoes,
   isSpeaking = false,
   className,
+  getSquash,
 }: CustomCharacterProps) {
   const [path, setPath] = useState("");
   const isBlinking = useBlink();
   const spikeRatio = spikeyness / 100;
+  const getSquashRef = useRef(getSquash);
+  getSquashRef.current = getSquash;
 
   const offsetsRef = useRef<
     { phase: number; speed: number; amplitude: number }[]
@@ -358,9 +362,12 @@ export function CustomCharacter({
           ? baseRadius + Math.sin(time * 0.001 * offset.speed + offset.phase) * offset.amplitude * (1 - spikeRatio * 0.5)
           : innerRadius + Math.sin(time * 0.001 * (offset.speed * 0.7) + offset.phase + 1) * offset.amplitude * 0.4;
 
+        const squash = getSquashRef.current?.();
+        const sx = squash?.sx ?? 1;
+        const sy = squash?.sy ?? 1;
         points.push({
-          x: cx + radius * Math.cos(baseAngle),
-          y: cy + radius * Math.sin(baseAngle),
+          x: cx + radius * Math.cos(baseAngle) * sx,
+          y: cy + radius * Math.sin(baseAngle) * sy,
         });
       }
 

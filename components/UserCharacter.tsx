@@ -10,9 +10,10 @@ interface UserCharacterProps {
   isSpeaking?: boolean;
   isVocalizing?: boolean;
   className?: string;
+  getSquash?: () => { sx: number; sy: number };
 }
 
-export function UserCharacter({ isSpeaking = false, isVocalizing = false, className }: UserCharacterProps) {
+export function UserCharacter({ isSpeaking = false, isVocalizing = false, className, getSquash }: UserCharacterProps) {
   const { isAuthenticated, profile } = useAuthStore();
 
   if (isAuthenticated && profile?.character_settings) {
@@ -29,6 +30,7 @@ export function UserCharacter({ isSpeaking = false, isVocalizing = false, classN
         shoes={settings.shoes ?? DEFAULT_CHARACTER_SETTINGS.shoes}
         isSpeaking={isSpeaking}
         className={className}
+        getSquash={getSquash}
       />
     );
   }
